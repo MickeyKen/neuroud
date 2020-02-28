@@ -75,7 +75,7 @@ class NeuroUdEnv(robot_gazebo_env.RobotGazeboEnv):
         if not self.initial_position:
             return
         state_msg = ModelState()
-        state_msg.model_name = 'racecar'
+        state_msg.model_name = 'ubiquitous_display'
         state_msg.pose.position.x = self.initial_position['p_x']
         state_msg.pose.position.y = self.initial_position['p_y']
         state_msg.pose.position.z = self.initial_position['p_z']
