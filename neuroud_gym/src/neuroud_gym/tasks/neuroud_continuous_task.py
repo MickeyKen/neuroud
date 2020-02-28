@@ -7,15 +7,15 @@ import rospy
 from gym.envs.registration import register
 from gym import spaces
 
-from neuroracer_gym import neuroracer_env
+from neuroud_gym import neuroud_env
 
 register(
         id='NeuroUd-v1',
-        entry_point='neuroud_gym:tasks.neuroud_continuous_task.NeuroracerContinuousTask',
+        entry_point='neuroud_gym:tasks.neuroud_continuous_task.NeuroudContinuousTask',
         # timestep_limit=timestep_limit_per_episode,
     )
 
-class NeuroracerContinuousTask(neuroracer_env.NeuroRacerEnv):
+class NeuroudContinuousTask(neuroud_env.NeuroUdEnv):
     def __init__(self):
         self.cumulated_steps = 0.0
         self.last_action = np.zeros(2)
@@ -25,7 +25,7 @@ class NeuroracerContinuousTask(neuroracer_env.NeuroRacerEnv):
         self.action_space = spaces.Box(low=np.array([self.steerin_angle_min], dtype=np.float32),
                                 high=np.array([self.steerin_angle_max], dtype=np.float32))
 
-        super(NeuroracerContinuousTask, self).__init__()
+        super(NeuroudContinuousTask, self).__init__()
 
     def _set_init_pose(self):
         self.steering(0, speed=0)

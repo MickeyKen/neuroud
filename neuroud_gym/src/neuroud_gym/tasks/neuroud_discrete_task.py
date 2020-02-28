@@ -3,7 +3,7 @@ import sys
 
 import rospy
 
-from neuroracer_gym import neuroracer_env
+from neuroud_gym import neuroud_env
 
 from gym import spaces
 from gym.envs.registration import register
@@ -18,11 +18,11 @@ default_sleep = 2
 
 print(register(
         id='NeuroUd-v0',
-        entry_point='neuroud_gym:tasks.neuroracer_discrete_task.NeuroRacerDiscreteTask',
+        entry_point='neuroud_gym:tasks.neuroud_discrete_task.NeuroUdDiscreteTask',
         # timestep_limit=timestep_limit_per_episode,
     ))
 
-class NeuroRacerDiscreteTask(neuroracer_env.NeuroRacerEnv):
+class NeuroUdDiscreteTask(neuroud_env.NeuroUdEnv):
     def __init__(self):
         self.cumulated_steps = 0.0
         self.last_action = 1
@@ -34,7 +34,7 @@ class NeuroRacerDiscreteTask(neuroracer_env.NeuroRacerEnv):
         self.number_of_sleeps = 10
 
 
-        super(NeuroRacerDiscreteTask, self).__init__()
+        super(NeuroUdDiscreteTask, self).__init__()
 
     def set_sleep_rate(self, hz):
         self.rate = None

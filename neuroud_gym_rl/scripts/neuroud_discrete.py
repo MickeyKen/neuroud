@@ -9,7 +9,7 @@ import rospy
 from neuroud_gym.tasks import neuroud_discrete_task
 from utils import preprocess, Memory
 
-class Neurozzud:
+class NeuroUd:
     def __init__(self, agent_class, sample_batch_size, n_frames, buffer_max_size, chunk_size, add_flipped, always_explore=False):
         self.sample_batch_size = sample_batch_size
         self.env               = gym.make('NeuroUd-v0')

@@ -14,7 +14,7 @@ if __name__ == '__main__':
     module = __import__(agent_name)
     agent_class = getattr(module, 'Agent')
 
-    game = NeuroRacer(agent_class, \
+    game = NeuroUd(agent_class, \
                       sample_batch_size=1000, \
                       n_frames=16, \
                       buffer_max_size=100000, \

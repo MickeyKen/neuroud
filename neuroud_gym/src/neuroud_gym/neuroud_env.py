@@ -18,11 +18,12 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from gym import spaces
 from gym.envs.registration import register
 
+from geometry_msgs.msg import Twist
 # import cv2
 
 default_sleep = 1
 
-class NeuroRacerEnv(robot_gazebo_env.RobotGazeboEnv):
+class NeuroUdEnv(robot_gazebo_env.RobotGazeboEnv):
     def __init__(self):
 
         self.initial_position = None
@@ -38,7 +39,7 @@ class NeuroRacerEnv(robot_gazebo_env.RobotGazeboEnv):
         self.robot_name_space = ""
 
         # We launch the init function of the Parent Class robot_gazebo_env.RobotGazeboEnv
-        super(NeuroRacerEnv, self).__init__(controllers_list=self.controllers_list,
+        super(NeuroUdEnv, self).__init__(controllers_list=self.controllers_list,
                                             robot_name_space=self.robot_name_space,
                                             reset_controls=False,
                                             start_init_physics_parameters=False)
@@ -60,15 +61,15 @@ class NeuroRacerEnv(robot_gazebo_env.RobotGazeboEnv):
 
         self.laser_subscription = rospy.Subscriber("/scan", LaserScan, self._laser_scan_callback)
 
-        self.drive_control_publisher= rospy.Publisher("/vesc/ackermann_cmd_mux/input/navigation",
-                                                       AckermannDriveStamped,
+        self.drive_control_publisher= rospy.Publisher("/cmd_vel",
+                                                       Twist,
                                                        queue_size=20)
 
         self._check_publishers_connection()
 
         self.gazebo.pauseSim()
 
-        rospy.logdebug("Finished NeuroRacerEnv INIT...")
+        rospy.logdebug("Finished NeuroUdEnv INIT...")
 
     def reset_position(self):
         if not self.initial_position:
@@ -86,7 +87,7 @@ class NeuroRacerEnv(robot_gazebo_env.RobotGazeboEnv):
         self.set_model_state(state_msg)
 
     def reset(self):
-        super(NeuroRacerEnv, self).reset()
+        super(NeuroUdEnv, self).reset()
         self.gazebo.unpauseSim()
         self.reset_position()
 
@@ -219,15 +220,24 @@ class NeuroRacerEnv(robot_gazebo_env.RobotGazeboEnv):
         self._episode_done = self._is_collided()
         return self._episode_done
 
-    def _create_steering_command(self, steering_angle, speed):
+    # def _create_steering_command(self, steering_angle, speed):
+    #     # steering_angle = np.clip(steering_angle,self.steerin_angle_min, self.steerin_angle_max)
+    #
+    #     a_d_s = AckermannDriveStamped()
+    #     a_d_s.drive.steering_angle = steering_angle
+    #     a_d_s.drive.steering_angle_velocity = 0.0
+    #     a_d_s.drive.speed = speed  # from 0 to 1
+    #     a_d_s.drive.acceleration = 0.0
+    #     a_d_s.drive.jerk = 0.0
+    #
+    #     return a_d_s
+
+    def _create_steering_command(self, linear_vel, angular_vel):
         # steering_angle = np.clip(steering_angle,self.steerin_angle_min, self.steerin_angle_max)
 
-        a_d_s = AckermannDriveStamped()
-        a_d_s.drive.steering_angle = steering_angle
-        a_d_s.drive.steering_angle_velocity = 0.0
-        a_d_s.drive.speed = speed  # from 0 to 1
-        a_d_s.drive.acceleration = 0.0
-        a_d_s.drive.jerk = 0.0
+        a_d_s = Twist()
+        a_d_s.linear.x = linear_vel
+        a_d_s.angular.z = angular_vel
 
         return a_d_s
 
