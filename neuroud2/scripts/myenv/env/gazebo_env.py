@@ -5,7 +5,7 @@ import roslaunch
 import time
 import numpy as np
 
-from gym import utils, spaces
+from gym import error, spaces, utils
 # from gym_gazebo.envs import gazebo_env
 from geometry_msgs.msg import Twist
 from std_srvs.srv import Empty
@@ -33,9 +33,9 @@ class GazeboEnv(gym.Env):
         self.reward_range = (-np.inf, np.inf)
 
         # self._seed()
-        self._reset()
+        self.reset()
 
-    def _discretize_observation(self,data,new_ranges):
+    def discretize_observation(self,data,new_ranges):
         discretized_ranges = []
         min_range = 0.2
         done = False
@@ -52,11 +52,11 @@ class GazeboEnv(gym.Env):
                 done = True
         return discretized_ranges,done
 
-    def _seed(self, seed=None):
+    def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def _step(self, action):
+    def step(self, action):
 
         rospy.wait_for_service('/gazebo/unpause_physics')
         try:
@@ -106,7 +106,7 @@ class GazeboEnv(gym.Env):
 
         return state, reward, done, {}
 
-    def _reset(self):
+    def reset(self):
 
         # Resets the state of the environment and returns an initial observation.
         rospy.wait_for_service('/gazebo/reset_simulation')
@@ -142,8 +142,8 @@ class GazeboEnv(gym.Env):
         state = self.discretize_observation(data,5)
 
         return state
-    def _render(self, mode='human', close=False):
+    def render(self, mode='human', close=False):
         pass
 
-    def _close(self):
+    def close(self):
         pass

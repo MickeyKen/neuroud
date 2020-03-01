@@ -8,13 +8,13 @@ import random
 import time
 # import liveplot
 import qlearn
-import myenv2
+import myenv
 
 
 
 if __name__ == '__main__':
 
-    env = gym.make('myenv-v0')
+    env = gym.make('GazeboUdLidar-v0')
 
 
     # outdir = '/tmp/gazebo_gym_experiments'
