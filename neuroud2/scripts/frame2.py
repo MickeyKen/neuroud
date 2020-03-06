@@ -6,11 +6,19 @@ import random
 import time
 # import liveplot
 import qlearn
+from sensor_msgs.msg import LaserScan
+from geometry_msgs.msg import Twist
+from std_srvs.srv import Empty
+import numpy
+from gym.spaces import *
+
+# class Subscribe():
+#     def __init__(self):
 
 
-def discretize_observation(self,data,new_ranges):
+def discretize_observation(data,new_ranges):
     discretized_ranges = []
-    min_range = 0.2
+    min_range = 1.0
     done = False
     mod = len(data.ranges)/new_ranges
     for i, item in enumerate(data.ranges):
@@ -25,15 +33,15 @@ def discretize_observation(self,data,new_ranges):
             done = True
     return discretized_ranges,done
 
-def seed(self, seed=None):
-    self.np_random, seed = seeding.np_random(seed)
+def seed(seed=None):
+    np_random, seed = seeding.np_random(seed)
     return [seed]
 
-def step(self, action):
+def step(action):
 
     rospy.wait_for_service('/gazebo/unpause_physics')
     try:
-        self.unpause()
+        unpause()
     except (rospy.ServiceException) as e:
         print ("/gazebo/unpause_physics service call failed")
 
@@ -41,17 +49,17 @@ def step(self, action):
         vel_cmd = Twist()
         vel_cmd.linear.x = 0.3
         vel_cmd.angular.z = 0.0
-        self.vel_pub.publish(vel_cmd)
+        vel_pub.publish(vel_cmd)
     elif action == 1: #LEFT
         vel_cmd = Twist()
         vel_cmd.linear.x = 0.05
         vel_cmd.angular.z = 0.3
-        self.vel_pub.publish(vel_cmd)
+        vel_pub.publish(vel_cmd)
     elif action == 2: #RIGHT
         vel_cmd = Twist()
         vel_cmd.linear.x = 0.05
         vel_cmd.angular.z = -0.3
-        self.vel_pub.publish(vel_cmd)
+        vel_pub.publish(vel_cmd)
 
     data = None
     while data is None:
@@ -63,11 +71,11 @@ def step(self, action):
     rospy.wait_for_service('/gazebo/pause_physics')
     try:
         #resp_pause = pause.call()
-        self.pause()
+        pause()
     except (rospy.ServiceException) as e:
         print ("/gazebo/pause_physics service call failed")
 
-    state,done = self.discretize_observation(data,5)
+    state,done = discretize_observation(data,5)
 
     if not done:
         if action == 0:
@@ -79,13 +87,13 @@ def step(self, action):
 
     return state, reward, done, {}
 
-def reset(self):
+def reset():
 
     # Resets the state of the environment and returns an initial observation.
     rospy.wait_for_service('/gazebo/reset_simulation')
     try:
         #reset_proxy.call()
-        self.reset_proxy()
+        reset_proxy()
     except (rospy.ServiceException) as e:
         print ("/gazebo/reset_simulation service call failed")
 
@@ -93,7 +101,7 @@ def reset(self):
     rospy.wait_for_service('/gazebo/unpause_physics')
     try:
         #resp_pause = pause.call()
-        self.unpause()
+        unpause()
     except (rospy.ServiceException) as e:
         print ("/gazebo/unpause_physics service call failed")
 
@@ -108,20 +116,27 @@ def reset(self):
     rospy.wait_for_service('/gazebo/pause_physics')
     try:
         #resp_pause = pause.call()
-        self.pause()
+        pause()
     except (rospy.ServiceException) as e:
         print ("/gazebo/pause_physics service call failed")
 
-    state = self.discretize_observation(data,5)
+    state = discretize_observation(data,5)
 
     return state
 
 if __name__ == '__main__':
 
+    rospy.init_node('tcmdvel_publisher')
+
+    vel_pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+    unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
+    pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
+    reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+
 
     last_time_steps = numpy.ndarray(0)
 
-    qlearn = qlearn.QLearn(actions=range(env.action_space.n),
+    qlearn = qlearn.QLearn([0,1,2],
                     alpha=0.2, gamma=0.8, epsilon=0.9)
 
     initial_epsilon = qlearn.epsilon
@@ -137,7 +152,7 @@ if __name__ == '__main__':
 
         cumulated_reward = 0 #Should going forward give more reward then L/R ?
 
-        observation = env.reset()
+        observation = reset()
 
         if qlearn.epsilon > 0.05:
             qlearn.epsilon *= epsilon_discount
@@ -152,7 +167,7 @@ if __name__ == '__main__':
             action = qlearn.chooseAction(state)
 
             # Execute the action and get feedback
-            observation, reward, done, info = env.step(action)
+            observation, reward, done, info = step(action)
             cumulated_reward += reward
 
             if highest_reward < cumulated_reward:
@@ -162,29 +177,8 @@ if __name__ == '__main__':
 
             qlearn.learn(state, action, reward, nextState)
 
-            env._flush(force=True)
-
             if not(done):
                 state = nextState
             else:
                 last_time_steps = numpy.append(last_time_steps, [int(i + 1)])
                 break
-
-        if x%100==0:
-            plotter.plot(env)
-
-        m, s = divmod(int(time.time() - start_time), 60)
-        h, m = divmod(m, 60)
-        print ("EP: "+str(x+1)+" - [alpha: "+str(round(qlearn.alpha,2))+" - gamma: "+str(round(qlearn.gamma,2))+" - epsilon: "+str(round(qlearn.epsilon,2))+"] - Reward: "+str(cumulated_reward)+"     Time: %d:%02d:%02d" % (h, m, s))
-
-    #Github table content
-    print ("\n|"+str(total_episodes)+"|"+str(qlearn.alpha)+"|"+str(qlearn.gamma)+"|"+str(initial_epsilon)+"*"+str(epsilon_discount)+"|"+str(highest_reward)+"| PICTURE |")
-
-    l = last_time_steps.tolist()
-    l.sort()
-
-    #print("Parameters: a="+str)
-    print("Overall score: {:0.2f}".format(last_time_steps.mean()))
-    print("Best 100 score: {:0.2f}".format(reduce(lambda x, y: x + y, l[-100:]) / len(l[-100:])))
-
-    env.close()
