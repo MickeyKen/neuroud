@@ -18,7 +18,7 @@ from gym.spaces import *
 
 def discretize_observation(data,new_ranges):
     discretized_ranges = []
-    min_range = 1.0
+    min_range = 0.5
     done = False
     mod = len(data.ranges)/new_ranges
     for i, item in enumerate(data.ranges):
