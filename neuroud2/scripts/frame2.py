@@ -12,13 +12,15 @@ from std_srvs.srv import Empty
 import numpy
 from gym.spaces import *
 
+import matplotlib.pyplot as plt
+
 # class Subscribe():
 #     def __init__(self):
 
 
 def discretize_observation(data,new_ranges):
     discretized_ranges = []
-    min_range = 0.5
+    min_range = 0.2
     done = False
     mod = len(data.ranges)/new_ranges
     for i, item in enumerate(data.ranges):
@@ -147,6 +149,17 @@ if __name__ == '__main__':
     total_episodes = 10000
     highest_reward = 0
 
+    plt.ion()
+    plt.title('Simple Curve Graph')
+    plt.xlabel('Episode')
+    plt.ylabel('Reward')
+    plt.xlim(0,1000)
+    plt.ylim(-500,600)
+    plt.grid()
+    xx = []
+    y = []
+
+
     for x in range(total_episodes):
         done = False
 
@@ -177,11 +190,19 @@ if __name__ == '__main__':
 
             qlearn.learn(state, action, reward, nextState)
 
+            # print ("Q value: " ,qlearn.q)
+
             if not(done):
                 state = nextState
             else:
                 last_time_steps = numpy.append(last_time_steps, [int(i + 1)])
                 break
-        m, s = divmod(int(time.time() - start_time), 60)
-        h, m = divmod(m, 60)
-        print ("EP: "+str(x+1)+" - [alpha: "+str(round(qlearn.alpha,2))+" - gamma: "+str(round(qlearn.gamma,2))+" - epsilon: "+str(round(qlearn.epsilon,2))+"] - Reward: "+str(cumulated_reward)+"     Time: %d:%02d:%02d" % (h, m, s))
+        xx.append(x+1)
+        y.append(cumulated_reward)
+        plt.plot(xx,y)
+        plt.draw()
+        plt.pause(0.1)
+        # m, s = divmod(int(time.time() - start_time), 60)
+        # h, m = divmod(m, 60)
+        print ("EP: "+str(x+1)+" - [alpha: "+str(round(qlearn.alpha,2))+" - gamma: "+str(round(qlearn.gamma,2))+" - epsilon: "+str(round(qlearn.epsilon,2))+"] - Reward: "+str(cumulated_reward))
+    plt.close()
