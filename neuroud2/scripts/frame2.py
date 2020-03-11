@@ -5,7 +5,7 @@ import time
 import random
 import time
 # import liveplot
-import qlearn
+import my_qlearn
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 from std_srvs.srv import Empty
@@ -45,7 +45,7 @@ def min_pooling(data,new_ranges):
     for i, item in enumerate(data.ranges):
         if (i%mod==0 and i+mod < 1084):
             minData = min(data.ranges[i:i+mod])
-            print minData, int(minData), i+mod
+            # print minData, int(minData), i+mod
             if data.ranges[i] == float ('Inf') or np.isinf(data.ranges[i]):
                 discretized_ranges.append(6)
             elif np.isnan(data.ranges[i]):
@@ -87,7 +87,7 @@ def step(action):
     data = None
     while data is None:
         try:
-            data = rospy.wait_for_message('/scan', LaserScan, timeout=5)
+            data = rospy.wait_for_message('/front_laser_scan', LaserScan, timeout=5)
         except:
             pass
 
@@ -98,7 +98,7 @@ def step(action):
     except (rospy.ServiceException) as e:
         print ("/gazebo/pause_physics service call failed")
 
-    state,done = min_pooling(data,54)
+    state,done = discretize_observation(data,5)
 
     if not done:
         if action == 0:
@@ -132,9 +132,10 @@ def reset():
     data = None
     while data is None:
         try:
-            data = rospy.wait_for_message('/scan', LaserScan, timeout=5)
+            data = rospy.wait_for_message('/front_laser_scan', LaserScan, timeout=5)
         except:
             pass
+
 
     rospy.wait_for_service('/gazebo/pause_physics')
     try:
@@ -143,7 +144,7 @@ def reset():
     except (rospy.ServiceException) as e:
         print ("/gazebo/pause_physics service call failed")
 
-    state = min_pooling(data,54)
+    state = discretize_observation(data,5)
 
     return state
 
@@ -159,8 +160,8 @@ if __name__ == '__main__':
 
     last_time_steps = numpy.ndarray(0)
 
-    qlearn = qlearn.QLearn([0,1,2],
-                    alpha=0.2, gamma=0.8, epsilon=0.3)
+    qlearn = my_qlearn.MyQLearn([0,1,2],
+                    alpha=0.2, gamma=0.8, epsilon=0.6)
 
     initial_epsilon = qlearn.epsilon
 
@@ -175,10 +176,11 @@ if __name__ == '__main__':
     plt.xlabel('Episode')
     plt.ylabel('Reward')
     plt.xlim(0,1000)
-    plt.ylim(-500,7500)
+    plt.ylim(-2000,5000)
     plt.grid()
     xx = []
     y = []
+    y2 = []
 
 
     for x in range(total_episodes):
@@ -227,7 +229,9 @@ if __name__ == '__main__':
                 break
         xx.append(x+1)
         y.append(cumulated_reward)
-        plt.plot(xx,y, color="#0F0F0F")
+        plt.plot(xx,y, color="blue")
+        y2.append(cumulated_reward/i)
+        plt.plot(xx,y2, color="red")
         plt.draw()
         plt.pause(0.1)
         # m, s = divmod(int(time.time() - start_time), 60)

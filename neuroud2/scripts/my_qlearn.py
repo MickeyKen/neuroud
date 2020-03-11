@@ -20,17 +20,19 @@ class MyQLearn:
         if oldv is None:
             self.q[(state, action)] = reward
         else:
-            self.q[(state, action)] = oldv + self.alpha * (reward-oldv)
+            self.q[(state, action)] = oldv + self.alpha * (value-oldv)
 
     def chooseAction(self, state, return_q=False):
         q = [self.getQ(state, a) for a in self.actions]
         maxQ = max(q)
+        # print q
+        # print maxQ
+        # print q.index(maxQ)
 
         if random.random() < self.epsilon:
             action = int(random.uniform(0, 3))
         else:
-            i = q.index(maxQ)
-            action = self.actions[i]
+            action = q.index(maxQ)
 
         # action = self.actions[i]
         if return_q: # if they want it, give it!
