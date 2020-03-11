@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 def discretize_observation(data,new_ranges):
     discretized_ranges = []
-    min_range = 0.2
+    min_range = 0.4
     done = False
     mod = len(data.ranges)/new_ranges
     for i, item in enumerate(data.ranges):
@@ -32,6 +32,27 @@ def discretize_observation(data,new_ranges):
             else:
                 discretized_ranges.append(int(data.ranges[i]))
         if (min_range > data.ranges[i] > 0):
+            done = True
+    return discretized_ranges,done
+
+def min_pooling(data,new_ranges):
+    discretized_ranges = []
+    min_range = 0.4
+    done = False
+    mod = len(data.ranges)/new_ranges
+
+    ### scan range 1,083 ###
+    for i, item in enumerate(data.ranges):
+        if (i%mod==0 and i+mod < 1084):
+            minData = min(data.ranges[i:i+mod])
+            print minData, int(minData), i+mod
+            if data.ranges[i] == float ('Inf') or np.isinf(data.ranges[i]):
+                discretized_ranges.append(6)
+            elif np.isnan(data.ranges[i]):
+                discretized_ranges.append(0)
+            else:
+                discretized_ranges.append(int(minData))
+        if (min_range > minData > 0):
             done = True
     return discretized_ranges,done
 
@@ -77,7 +98,7 @@ def step(action):
     except (rospy.ServiceException) as e:
         print ("/gazebo/pause_physics service call failed")
 
-    state,done = discretize_observation(data,5)
+    state,done = min_pooling(data,54)
 
     if not done:
         if action == 0:
@@ -85,7 +106,7 @@ def step(action):
         else:
             reward = 1
     else:
-        reward = -200
+        reward = -2000
 
     return state, reward, done, {}
 
@@ -122,7 +143,7 @@ def reset():
     except (rospy.ServiceException) as e:
         print ("/gazebo/pause_physics service call failed")
 
-    state = discretize_observation(data,5)
+    state = min_pooling(data,54)
 
     return state
 
@@ -139,7 +160,7 @@ if __name__ == '__main__':
     last_time_steps = numpy.ndarray(0)
 
     qlearn = qlearn.QLearn([0,1,2],
-                    alpha=0.2, gamma=0.8, epsilon=0.9)
+                    alpha=0.2, gamma=0.8, epsilon=0.3)
 
     initial_epsilon = qlearn.epsilon
 
@@ -154,7 +175,7 @@ if __name__ == '__main__':
     plt.xlabel('Episode')
     plt.ylabel('Reward')
     plt.xlim(0,1000)
-    plt.ylim(-500,600)
+    plt.ylim(-500,7500)
     plt.grid()
     xx = []
     y = []
@@ -170,25 +191,32 @@ if __name__ == '__main__':
         if qlearn.epsilon > 0.05:
             qlearn.epsilon *= epsilon_discount
 
-        #render() #defined above, not env.render()
+        #render() #definednvidia-detector devices above, not env.render()
 
         state = ''.join(map(str, observation))
 
         for i in range(1500):
+
+            # print qlearn.q
 
             # Pick an action based on the current state
             action = qlearn.chooseAction(state)
 
             # Execute the action and get feedback
             observation, reward, done, info = step(action)
+            # print observation
             cumulated_reward += reward
 
             if highest_reward < cumulated_reward:
                 highest_reward = cumulated_reward
 
             nextState = ''.join(map(str, observation))
+            # print nextState
+
+            # print "====================================="
 
             qlearn.learn(state, action, reward, nextState)
+            # print state
 
             # print ("Q value: " ,qlearn.q)
 
@@ -199,10 +227,10 @@ if __name__ == '__main__':
                 break
         xx.append(x+1)
         y.append(cumulated_reward)
-        plt.plot(xx,y)
+        plt.plot(xx,y, color="#0F0F0F")
         plt.draw()
         plt.pause(0.1)
         # m, s = divmod(int(time.time() - start_time), 60)
         # h, m = divmod(m, 60)
-        print ("EP: "+str(x+1)+" - [alpha: "+str(round(qlearn.alpha,2))+" - gamma: "+str(round(qlearn.gamma,2))+" - epsilon: "+str(round(qlearn.epsilon,2))+"] - Reward: "+str(cumulated_reward))
+        print ("EP: "+str(x+1)+" - [alpha: "+str(round(qlearn.alpha,2))+" - gamma: "+str(round(qlearn.gamma,2))+" - epsilon: "+str(round(qlearn.epsilon,2))+"] - Reward: "+str(cumulated_reward)+" - Count: "+str(i))
     plt.close()
