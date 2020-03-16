@@ -3,7 +3,7 @@ import numpy as np
 import rospy
 import time
 import random
-import time
+# import time
 # import liveplot
 import my_qlearn
 from sensor_msgs.msg import LaserScan
@@ -37,7 +37,7 @@ def discretize_observation(data,new_ranges):
 
 def min_pooling(data,new_ranges):
     discretized_ranges = []
-    min_range = 0.4
+    min_range = 0.2
     done = False
     mod = len(data.ranges)/new_ranges
 
@@ -84,6 +84,8 @@ def step(action):
         vel_cmd.angular.z = -0.3
         vel_pub.publish(vel_cmd)
 
+    time.sleep(1)
+
     data = None
     while data is None:
         try:
@@ -106,7 +108,7 @@ def step(action):
         else:
             reward = 1
     else:
-        reward = -2000
+        reward = -200
 
     return state, reward, done, {}
 
@@ -148,6 +150,15 @@ def reset():
 
     return state
 
+def plot(x1,y1,x2,y2,cumulated_reward,i):
+    xx.append(x+1)
+    y.append(cumulated_reward)
+    plt.plot(xx,y, color="blue")
+    y2.append(cumulated_reward/i)
+    plt.plot(xx,y2, color="red")
+    plt.draw()
+    plt.pause(0.1)
+
 if __name__ == '__main__':
 
     rospy.init_node('tcmdvel_publisher')
@@ -161,7 +172,7 @@ if __name__ == '__main__':
     last_time_steps = numpy.ndarray(0)
 
     qlearn = my_qlearn.MyQLearn([0,1,2],
-                    alpha=0.2, gamma=0.8, epsilon=0.6)
+                    alpha=0.2, gamma=0.8, epsilon=0.9)
 
     initial_epsilon = qlearn.epsilon
 
@@ -171,12 +182,15 @@ if __name__ == '__main__':
     total_episodes = 10000
     highest_reward = 0
 
+    r = rospy.Rate(10)
+
+
     plt.ion()
     plt.title('Simple Curve Graph')
     plt.xlabel('Episode')
     plt.ylabel('Reward')
-    plt.xlim(0,1000)
-    plt.ylim(-2000,5000)
+    plt.xlim(0,5000)
+    plt.ylim(-500,3000)
     plt.grid()
     xx = []
     y = []
@@ -197,7 +211,9 @@ if __name__ == '__main__':
 
         state = ''.join(map(str, observation))
 
+
         for i in range(1500):
+            start_time = time.time()
 
             # print qlearn.q
 
@@ -222,18 +238,16 @@ if __name__ == '__main__':
 
             # print ("Q value: " ,qlearn.q)
 
+            print time.time() - start_time
+
             if not(done):
                 state = nextState
             else:
                 last_time_steps = numpy.append(last_time_steps, [int(i + 1)])
                 break
-        xx.append(x+1)
-        y.append(cumulated_reward)
-        plt.plot(xx,y, color="blue")
-        y2.append(cumulated_reward/i)
-        plt.plot(xx,y2, color="red")
-        plt.draw()
-        plt.pause(0.1)
+
+        plot(xx,y,xx,y2,cumulated_reward,i)
+
         # m, s = divmod(int(time.time() - start_time), 60)
         # h, m = divmod(m, 60)
         print ("EP: "+str(x+1)+" - [alpha: "+str(round(qlearn.alpha,2))+" - gamma: "+str(round(qlearn.gamma,2))+" - epsilon: "+str(round(qlearn.epsilon,2))+"] - Reward: "+str(cumulated_reward)+" - Count: "+str(i))
