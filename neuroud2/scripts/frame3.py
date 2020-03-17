@@ -7,7 +7,7 @@ https://gist.github.com/wingedsheep/4199594b02138dd427c22a540d6d6b8d
 '''
 import gym
 from gym import wrappers
-import gym_gazebo
+# import gym_gazebo
 import time
 import numpy as np
 # from distutils.dir_util import copy_tree
@@ -15,6 +15,9 @@ import os
 import json
 # import liveplot
 import my_dqn
+
+import rospy
+
 from geometry_msgs.msg import Twist
 from std_srvs.srv import Empty
 from sensor_msgs.msg import LaserScan
@@ -60,7 +63,7 @@ def step(action):
     data = None
     while data is None:
         try:
-            data = rospy.wait_for_message('/scan', LaserScan, timeout=5)
+            data = rospy.wait_for_message('/front_laser_scan', LaserScan, timeout=5)
         except:
             pass
 
@@ -103,7 +106,7 @@ def reset():
     data = None
     while data is None:
         try:
-            data = rospy.wait_for_message('/scan', LaserScan, timeout=5)
+            data = rospy.wait_for_message('/front_laser_scan', LaserScan, timeout=5)
         except:
             pass
 
@@ -171,7 +174,7 @@ if __name__ == '__main__':
 
     #start iterating from 'current epoch'.
     for epoch in xrange(current_epoch+1, epochs+1, 1):
-        observation = env.reset()
+        observation = reset()
         cumulated_reward = 0
         done = False
         episode_step = 0
