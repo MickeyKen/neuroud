@@ -41,6 +41,6 @@ class MySarsa:
             return action, q
         return action
 
-    def learn(self, state1, action1, reward, state2):
+    def learn(self, state1, action1, reward, state2, action2):
         qnext = self.getQ(state2, action2)
-        self.learnQ(state1, action1, reward, reward + self.gamma*maxqnew)
+        self.learnQ(state1, action1, reward, reward + self.gamma * qnext)
