@@ -30,9 +30,11 @@ class MyQLearn:
         # print q.index(maxQ)
 
         if random.random() < self.epsilon:
-            action = int(random.uniform(0, 3))
+            # action = int(random.uniform(0, 3))
+            action = random.choice(self.actions)
         else:
-            action = q.index(maxQ)
+            i = q.index(maxQ)
+            action = self.actions[i]
 
         # action = self.actions[i]
         if return_q: # if they want it, give it!
