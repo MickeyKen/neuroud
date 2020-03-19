@@ -5,6 +5,7 @@ from keras import Sequential, optimizers
 from keras.layers import Dense, Activation, LeakyReLU, Dropout
 from keras.models import load_model
 from keras.regularizers import l2
+# from keras.utils.visualize_util import plot
 
 import memory
 

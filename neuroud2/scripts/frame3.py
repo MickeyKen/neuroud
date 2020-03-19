@@ -23,6 +23,9 @@ from std_srvs.srv import Empty
 from sensor_msgs.msg import LaserScan
 
 from gym.utils import seeding
+
+import matplotlib.pyplot as plt
+
 # def detect_monitor_files(training_dir):
 #     return [os.path.join(training_dir, f) for f in os.listdir(training_dir) if f.startswith('openaigym')]
 #
@@ -34,7 +37,7 @@ from gym.utils import seeding
 #         print(file)
 #         os.unlink(file)
 def calculate_observation(data):
-    min_range = 0.2
+    min_range = 0.4
     done = False
     for i, item in enumerate(data.ranges):
         if (min_range > data.ranges[i] > 0):
@@ -58,7 +61,9 @@ def step(action):
     vel_cmd = Twist()
     vel_cmd.linear.x = 0.2
     vel_cmd.angular.z = ang_vel
-    self.vel_pub.publish(vel_cmd)
+    vel_pub.publish(vel_cmd)
+
+    time.sleep(1)
 
     data = None
     while data is None:
@@ -121,6 +126,12 @@ def reset():
 
     return np.asarray(state)
 
+def plot(x1,y1,x2,y2,cumulated_reward):
+    xx.append(epoch+1)
+    y.append(cumulated_reward)
+    plt.plot(xx,y, color="blue")
+    plt.draw()
+    plt.pause(0.1)
 
 if __name__ == '__main__':
     rospy.init_node('tcmdvel_publisher_dqn')
@@ -133,7 +144,7 @@ if __name__ == '__main__':
     #REMEMBER!: turtlebot_nn_setup.bash must be executed.
     # env = gym.make('GazeboCircuit2TurtlebotLidarNn-v0')
     outdir = '/tmp/gazebo_gym_experiments/'
-    path = '/tmp/turtle_c2_dqn_ep'
+    path = '/tmp/'
     # plotter = liveplot.LivePlot(outdir)
 
     continue_execution = False
@@ -151,7 +162,7 @@ if __name__ == '__main__':
         learningRate = 0.00025
         discountFactor = 0.99
         memorySize = 1000000
-        network_inputs = 100
+        network_inputs = 1080
         network_outputs = 21
         network_structure = [300,300]
         current_epoch = 0
@@ -171,6 +182,17 @@ if __name__ == '__main__':
     highest_reward = 0
 
     start_time = time.time()
+
+    plt.ion()
+    plt.title('Simple Curve Graph')
+    plt.xlabel('Episode')
+    plt.ylabel('Reward')
+    plt.xlim(0,5000)
+    plt.ylim(-500,3000)
+    plt.grid()
+    xx = []
+    y = []
+    y2 = []
 
     #start iterating from 'current epoch'.
     for epoch in xrange(current_epoch+1, epochs+1, 1):
@@ -214,9 +236,9 @@ if __name__ == '__main__':
                     m, s = divmod(int(time.time() - start_time), 60)
                     h, m = divmod(m, 60)
                     print ("EP " + str(epoch) + " - " + format(episode_step + 1) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated R: " + str(cumulated_reward) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
-                    # if (epoch)%100==0:
+                    if (epoch)%100==0:
                     #     #save model weights and monitoring data every 100 epochs.
-                    #     deepQ.saveModel(path+str(epoch)+'.h5')
+                        deepQ.saveModel(path+str(epoch)+'.h5')
                     #     env._flush()
                     #     copy_tree(outdir,path+str(epoch))
                     #     #save simulation parameters.
@@ -232,6 +254,8 @@ if __name__ == '__main__':
                 print ("updating target network")
 
             episode_step += 1
+
+        plot(xx,y,xx,y2,cumulated_reward)
 
         explorationRate *= 0.995 #epsilon decay
         # explorationRate -= (2.0/epochs)
