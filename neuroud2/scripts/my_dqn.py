@@ -6,6 +6,7 @@ from keras.layers import Dense, Activation, LeakyReLU, Dropout
 from keras.models import load_model
 from keras.regularizers import l2
 # from keras.utils.visualize_util import plot
+from keras.utils import plot_model
 
 import memory
 
@@ -69,6 +70,7 @@ class DeepQ:
             model.add(Activation("linear"))
         optimizer = optimizers.RMSprop(lr=learningRate, rho=0.9, epsilon=1e-06)
         model.compile(loss="mse", optimizer=optimizer)
+        plot_model(model, to_file='model.png')
         model.summary()
         return model
 
