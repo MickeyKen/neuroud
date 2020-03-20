@@ -70,7 +70,7 @@ class DeepQ:
             model.add(Activation("linear"))
         optimizer = optimizers.RMSprop(lr=learningRate, rho=0.9, epsilon=1e-06)
         model.compile(loss="mse", optimizer=optimizer)
-        plot_model(model, to_file='model.png')
+        plot_model(model, show_shapes=True, show_layer_names=True, to_file='model.png')
         model.summary()
         return model
 
@@ -130,6 +130,7 @@ class DeepQ:
             action = np.random.randint(0, self.output_size)
         else :
             action = self.getMaxIndex(qValues)
+        print action
         return action
 
     def addMemory(self, state, action, reward, newState, isFinal):

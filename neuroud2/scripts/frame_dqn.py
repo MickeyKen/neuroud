@@ -55,13 +55,21 @@ def step(action):
     except (rospy.ServiceException) as e:
         print ("/gazebo/unpause_physics service call failed")
 
-    max_ang_speed = 0.3
-    ang_vel = (action-10)*max_ang_speed*0.1 #from (-0.33 to + 0.33)
-
-    vel_cmd = Twist()
-    vel_cmd.linear.x = 0.2
-    vel_cmd.angular.z = ang_vel
-    vel_pub.publish(vel_cmd)
+    if action == 0: #FORWARD
+        vel_cmd = Twist()
+        vel_cmd.linear.x = 0.3
+        vel_cmd.angular.z = 0.0
+        vel_pub.publish(vel_cmd)
+    elif action == 1: #LEFT
+        vel_cmd = Twist()
+        vel_cmd.linear.x = 0.05
+        vel_cmd.angular.z = 0.3
+        vel_pub.publish(vel_cmd)
+    elif action == 2: #RIGHT
+        vel_cmd = Twist()
+        vel_cmd.linear.x = 0.05
+        vel_cmd.angular.z = -0.3
+        vel_pub.publish(vel_cmd)
 
     time.sleep(1)
 
@@ -82,9 +90,10 @@ def step(action):
     state,done = calculate_observation(data)
 
     if not done:
-        # Straight reward = 5, Max angle reward = 0.5
-        reward = round(15*(max_ang_speed - abs(ang_vel) +0.0335), 2)
-        # print ("Action : "+str(action)+" Ang_vel : "+str(ang_vel)+" reward="+str(reward))
+        if action == 0:
+            reward = 5
+        else:
+            reward = 1
     else:
         reward = -200
 
@@ -163,8 +172,10 @@ if __name__ == '__main__':
         discountFactor = 0.99
         memorySize = 1000000
         network_inputs = 1080
-        network_outputs = 21
-        network_structure = [300,300]
+        network_outputs = 3
+
+        ### number of hiddenLayer ###
+        network_structure = [300,21]
         current_epoch = 0
 
         deepQ = my_dqn.DeepQ(network_inputs, network_outputs, memorySize, discountFactor, learningRate, learnStart)
@@ -219,8 +230,10 @@ if __name__ == '__main__':
             if stepCounter >= learnStart:
                 if stepCounter <= updateTargetNetwork:
                     deepQ.learnOnMiniBatch(minibatch_size, False)
+                    print "pass False"
                 else :
                     deepQ.learnOnMiniBatch(minibatch_size, True)
+                    print "pass True"
 
             observation = newObservation
 
