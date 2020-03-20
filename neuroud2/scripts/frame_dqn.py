@@ -97,7 +97,12 @@ def step(action):
     else:
         reward = -200
 
-    return np.asarray(state), reward, done, {}
+    state = np.asarray(state)
+    state[np.isnan(state)] = 0.5
+    state[np.isinf(state)] = 30.0
+
+
+    return state, reward, done, {}
 
 
 def reset():
@@ -165,7 +170,7 @@ if __name__ == '__main__':
         epochs = 1000
         steps = 1000
         updateTargetNetwork = 10000
-        explorationRate = 1
+        explorationRate = 0.6
         minibatch_size = 64
         learnStart = 64
         learningRate = 0.00025
@@ -216,6 +221,7 @@ if __name__ == '__main__':
         while not done:
             # env.render()
             qValues = deepQ.getQValues(observation)
+            print qValues
 
             action = deepQ.selectAction(qValues, explorationRate)
 
@@ -230,10 +236,10 @@ if __name__ == '__main__':
             if stepCounter >= learnStart:
                 if stepCounter <= updateTargetNetwork:
                     deepQ.learnOnMiniBatch(minibatch_size, False)
-                    print "pass False"
+                    # print "pass False"
                 else :
                     deepQ.learnOnMiniBatch(minibatch_size, True)
-                    print "pass True"
+                    # print "pass True"
 
             observation = newObservation
 
