@@ -280,7 +280,4 @@ if __name__ == '__main__':
         # explorationRate -= (2.0/epochs)
         explorationRate = max (0.05, explorationRate)
 
-    #     if epoch % 100 == 0:
-    #         plotter.plot(env)
-    #
-    # env.close()
+    plt.savefig('output_frame_dqn.png')

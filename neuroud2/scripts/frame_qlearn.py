@@ -251,4 +251,5 @@ if __name__ == '__main__':
         # m, s = divmod(int(time.time() - start_time), 60)
         # h, m = divmod(m, 60)
         print ("EP: "+str(x+1)+" - [alpha: "+str(round(qlearn.alpha,2))+" - gamma: "+str(round(qlearn.gamma,2))+" - epsilon: "+str(round(qlearn.epsilon,2))+"] - Reward: "+str(cumulated_reward)+" - Count: "+str(i))
+    plt.savefig('output_frame_qlearn.png')
     plt.close()
