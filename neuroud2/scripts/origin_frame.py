@@ -23,6 +23,8 @@ from geometry_msgs.msg import Twist
 from std_srvs.srv import Empty
 from sensor_msgs.msg import LaserScan
 
+from std_srvs.srv import SetBool, SetBoolResponse
+
 from gym.utils import seeding
 
 import matplotlib.pyplot as plt
@@ -51,6 +53,11 @@ def step(action):
     if action == 0: #STOP
         vel_cmd = Twist()
         vel_pub.publish(vel_cmd)
+        response = set_projection(False)
+        print response.success
+        if response.success:
+            action = 3
+
     elif action == 1: #LEFT
         vel_cmd = Twist()
         vel_cmd.linear.y = 1.0
@@ -81,6 +88,8 @@ def step(action):
     if not done:
         if action == 0:
             reward = 2
+        elif action == 3:
+            reward = 10
         else:
             reward = -1
     else:
@@ -152,6 +161,8 @@ if __name__ == '__main__':
     unpause = rospy.ServiceProxy('/gazebo/unpause_physics', Empty)
     pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
     reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
+
+    set_projection = rospy.ServiceProxy('/projection/service', SetBool)
 
     #REMEMBER!: turtlebot_nn_setup.bash must be executed.
     # env = gym.make('GazeboCircuit2TurtlebotLidarNn-v0')
