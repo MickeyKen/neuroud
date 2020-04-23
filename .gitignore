@@ -3,3 +3,7 @@ neuroud_gym/
 neuroud_gym_rl/
 
 neuroud2/src/
+
+neuroud2/scripts/myenv
+
+neuroud2/scripts/myenv2
