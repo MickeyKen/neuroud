@@ -7,3 +7,9 @@ neuroud2/src/
 neuroud2/scripts/myenv
 
 neuroud2/scripts/myenv2
+
+neuroud2/scripts/frame.py
+
+neuroud2/scripts/qlearn.py
+
+neuroud2/scripts/qlearn.pyc
