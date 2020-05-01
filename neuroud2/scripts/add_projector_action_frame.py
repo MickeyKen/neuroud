@@ -184,7 +184,7 @@ if __name__ == '__main__':
         discountFactor = 0.99
         memorySize = 1000000
         network_inputs = 1080
-        network_outputs = 3
+        network_outputs = 4
 
         ### number of hiddenLayer ###
         network_structure = [300,21]
