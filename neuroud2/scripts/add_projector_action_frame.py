@@ -18,11 +18,11 @@ from geometry_msgs.msg import Twist
 from std_srvs.srv import Empty
 from sensor_msgs.msg import LaserScan
 
-from std_srvs.srv import SetBool, SetBoolResponse
-
 from gym.utils import seeding
 
 import matplotlib.pyplot as plt
+
+import projection
 
 
 
@@ -60,12 +60,11 @@ def step(action, last_action):
 
     elif action == 3:
         if last_action == 0:
-            response = set_projection(False)
-            print response.success
-            if response.success:
+            response = p.service_callback(False)
+            if response:
                 action = 33
 
-    # time.sleep(0.5)
+    time.sleep(0.5)
 
     data = None
     while data is None:
@@ -87,11 +86,12 @@ def step(action, last_action):
         if action == 0 and action == 3:
             reward = 2
         elif action == 33:
-            reward = 10
+            reward = 30
         else:
             reward = -1
     else:
         reward = -200
+    print reward
 
     state = np.asarray(state)
     state[np.isnan(state)] = 0.5
@@ -160,7 +160,7 @@ if __name__ == '__main__':
     pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
     reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
 
-    set_projection = rospy.ServiceProxy('/projection/service', SetBool)
+    p = projection.Projection()
 
     #REMEMBER!: turtlebot_nn_setup.bash must be executed.
     # env = gym.make('GazeboCircuit2TurtlebotLidarNn-v0')
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         #Each time we take a sample and update our weights it is called a mini-batch.
         #Each time we run through the entire dataset, it's called an epoch.
         #PARAMETER LIST
-        epochs = 1000
+        epochs = 2000
         steps = 1000
         updateTargetNetwork = 10000
         explorationRate = 0.6
