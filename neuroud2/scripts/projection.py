@@ -80,14 +80,14 @@ class Projection():
                             self.on_off_project(1)
                             while True:
                                 done = self.scan_callback()
+                                if done:
+                                    break
                                 actor_pose, done_pose = self.get_pose(name)
-                                if not done_pose:
-                                    return resp
                                 if actor_pose.position.x < proj_pos + 1.2:
                                     resp = True
                                     break
-                                if done:
-                                    break
+                                if not done_pose:
+                                    return resp
                             self.on_off_project(0)
                             responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
                         else:
@@ -131,11 +131,11 @@ class Projection():
 
         start = time.time()
         while True:
-            done = self.scan_callback()
             elapsed_time = time.time() - start
             if elapsed_time >= target_time:
                 response = True
                 break
+            done = self.scan_callback()
             if done:
                 response = False
                 break
@@ -155,6 +155,7 @@ class Projection():
         set = GetModelStateRequest()
         set.model_name = name
         try:
+            rospy.wait_for_service('/gazebo/get_model_state', timeout=2.0)
             response = self.call(set)
             done = True
         except rospy.ServiceException as exc:

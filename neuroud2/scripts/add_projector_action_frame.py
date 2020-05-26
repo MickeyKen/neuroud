@@ -83,10 +83,10 @@ def step(action, last_action):
     state,done = calculate_observation(data)
 
     if not done:
-        if action == 0 and action == 3:
+        if action == 0 or action == 3:
             reward = 2
         elif action == 33:
-            reward = 30
+            reward = 20
         else:
             reward = -1
     else:
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         #Each time we take a sample and update our weights it is called a mini-batch.
         #Each time we run through the entire dataset, it's called an epoch.
         #PARAMETER LIST
-        epochs = 2000
+        epochs = 1000
         steps = 1000
         updateTargetNetwork = 10000
         explorationRate = 0.6
