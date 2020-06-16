@@ -9,8 +9,7 @@ import tf
 from std_msgs.msg import String, Bool, Int32, Float64
 from geometry_msgs.msg import Point, Vector3, Pose
 from sensor_msgs.msg import LaserScan
-
-from gazebo_msgs.srv import GetModelState, GetModelStateRequest
+from gazebo_msgs.msg import ModelStates
 
 MAX_PAN_RADIAN = 2.9670
 MIN_PAN_RADIAN = -2.9670
@@ -21,7 +20,7 @@ MIN_TILT_RADIAN = -0.2617
 class Projection():
     def __init__(self):
 
-        self.rate = rospy.Rate(2)
+        self.rate = rospy.Rate(5)
 
         self.x_position = 4.0
         self.y_position = 1.25
@@ -41,8 +40,6 @@ class Projection():
         self.tilt_pub = rospy.Publisher('/ubiquitous_display/tilt_controller/command', Float64, queue_size=10)
 
         self.image_pub = rospy.Publisher('/ubiquitous_display/image', Int32, queue_size=10)
-
-        self.call = rospy.ServiceProxy('/gazebo/get_model_state', GetModelState)
 
         rospy.sleep(2)
         self.image_pub.publish(0)
@@ -157,18 +154,18 @@ class Projection():
 
     def get_pose(self, name):
         done = False
-        set = GetModelStateRequest()
-        set.model_name = name
-        rospy.wait_for_service('/gazebo/get_model_state', timeout=2.0)
+        responce = Pose()
         try:
-            response = self.call(set)
+            print "in"
+            data = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=5)
+            print data.pose[data.name.index(name)]
             done = True
-        except (rospy.ServiceException) as e:
-            print("/gazebo/get_model_state called Failed")
+            responce = data.pose[data.name.index(name)]
+            print responce
+        except:
             pass
-
         if done:
-            return response.pose, done
+            return responce, done
         else:
             return Pose(), done
 
