@@ -78,24 +78,20 @@ class Projection():
                         if responce:
                             self.on_off_project(1)
                             while True:
-                                start = time.time()
-                                print start
                                 done = self.scan_callback()
                                 if done:
                                     break
                                 actor_pose, done_pose = self.get_pose(name)
-                                if actor_pose.position.x < proj_pos + 1.2:
+                                if actor_pose.position.x < proj_pos + 1.2 and done_pose == True:
                                     resp = True
                                     break
-                                if not done_pose:
-                                    return resp
+                                else:
+                                    break
                                 self.rate.sleep()
                             self.on_off_project(0)
                             responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
                         else:
                             pass
-                        self.pan_pub.publish(-(math.pi / 2.0))
-                        self.tilt_pub.publish(0.0)
             else:
                 pass
         return resp
