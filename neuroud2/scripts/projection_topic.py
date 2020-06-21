@@ -86,14 +86,15 @@ class Projection():
                                     resp = True
                                     break
                                 else:
-                                    break
+                                    pass
                                 self.rate.sleep()
                             self.on_off_project(0)
-                            responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
+                            # responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
                         else:
                             pass
             else:
                 pass
+        responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
         return resp
 
     def scan_callback(self):
@@ -152,12 +153,12 @@ class Projection():
         done = False
         responce = Pose()
         try:
-            print "in"
+            #print "in"
             data = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=5)
-            print data.pose[data.name.index(name)]
+            #print data.pose[data.name.index(name)]
             done = True
             responce = data.pose[data.name.index(name)]
-            print responce
+            #print responce
         except:
             pass
         if done:
