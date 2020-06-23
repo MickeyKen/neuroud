@@ -87,13 +87,14 @@ class Projection():
                                     break
                                 else:
                                     pass
-                                self.rate.sleep()
-                            self.on_off_project(0)
+                                # self.rate.sleep()
+
                             # responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
                         else:
                             pass
             else:
                 pass
+        self.on_off_project(0)
         responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
         return resp
 
@@ -143,7 +144,7 @@ class Projection():
     def on_off_project(self, on_off):
         int_msg = Int32()
         if on_off == 1:
-            int_msg = 1
+            int_msg = 10
         elif on_off == 0:
             int_msg = 0
 
