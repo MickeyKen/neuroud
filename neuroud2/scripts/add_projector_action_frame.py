@@ -59,10 +59,11 @@ def step(action, last_action):
         vel_pub.publish(vel_cmd)
 
     elif action == 3:
-        if last_action == 0:
-            response = p.service_callback(False)
-            if response:
-                action = 33
+        vel_cmd = Twist()
+        vel_pub.publish(vel_cmd)
+        response = p.service_callback(False)
+        if response:
+            action = 33
 
     time.sleep(0.5)
 
@@ -83,8 +84,10 @@ def step(action, last_action):
     state,done = calculate_observation(data)
 
     if not done:
-        if action == 0 or action == 3:
+        if action == 0:
             reward = 2
+        elif action == 3:
+            reward = 1
         elif action == 33:
             reward = 20
         else:
