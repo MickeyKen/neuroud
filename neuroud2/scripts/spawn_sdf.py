@@ -16,7 +16,7 @@ if __name__ == '__main__':
     delete_model = rospy.ServiceProxy("gazebo/delete_model", DeleteModel)
     spawn_model = rospy.ServiceProxy("/gazebo/spawn_sdf_model", SpawnModel)
 
-    with open(path + "/projection/model.sdf", "r") as f:
+    with open(path + "/circle_projection.sdf", "r") as f:
         product_xml = f.read()
 
     pose = Pose()
