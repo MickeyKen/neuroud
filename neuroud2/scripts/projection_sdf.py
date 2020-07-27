@@ -10,7 +10,7 @@ import os
 from std_msgs.msg import String, Bool, Int32, Float64
 from geometry_msgs.msg import Point, Vector3, Pose
 from sensor_msgs.msg import LaserScan
-from gazebo_msgs.msg import ModelStates
+from gazebo_msgs.msg import ModelStates, ModelState
 
 from gazebo_msgs.srv import DeleteModel, DeleteModelRequest, SpawnModel, SpawnModelRequest
 import rospkg
@@ -23,10 +23,6 @@ MIN_TILT_RADIAN = -0.2617
 
 class Projection():
     def __init__(self):
-
-        path = os.path.join(rospkg.RosPack().get_path('neuroud2')+ '/models')
-        with open(path + "/circle_projection.sdf", "r") as f:
-            self.product_xml = f.read()
 
         self.rate = rospy.Rate(5)
 
@@ -52,9 +48,28 @@ class Projection():
 
         self.image_pub = rospy.Publisher('/ubiquitous_display/image', Int32, queue_size=10)
 
+        path = os.path.join(rospkg.RosPack().get_path('neuroud2')+ '/models')
+        with open(path + "/circle_projection.sdf", "r") as f:
+            product_xml = f.read()
+        rospy.wait_for_service('/gazebo/spawn_sdf_model')
+        try:
+            pose = Pose()
+            pose.position.x = 0
+            pose.position.y = 0
+            pose.position.z = -3
+            req = SpawnModelRequest()
+            req.model_name = "projection"
+            req.model_xml = product_xml
+            req.initial_pose = pose
+            req.reference_frame = "world"
+            self.spawn_model(req)
+        except rospy.ServiceException as e:
+            print("Service call failed: %s"%e)
+
         rospy.sleep(2)
         self.image_pub.publish(0)
         self.pan_pub.publish(-(math.pi / 2.0))
+        self.ms_pub = rospy.Publisher('/gazebo/set_model_state', ModelState, queue_size=10)
         rospy.loginfo("--- Start projection server ---")
 
     def service_callback(self, req):
@@ -99,13 +114,13 @@ class Projection():
                                 else:
                                     pass
                                 # self.rate.sleep()
+                            self.on_off_project(0, 0.0, 0.0)
 
                             # responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
                         else:
                             pass
             else:
                 pass
-        self.on_off_project(0, 0.0, 0.0)
         responce = self.set_pantilt_func(-(math.pi / 2.0),0.0)
         return resp
 
@@ -153,28 +168,20 @@ class Projection():
         return response
 
     def on_off_project(self, on_off, x, y):
+        req = ModelState()
+        req.model_name = "projection"
+        req.reference_frame = "world"
         if on_off == 1:
-            rospy.wait_for_service('/gazebo/spawn_sdf_model')
-            try:
-                pose = Pose()
-                pose.position.x = x
-                pose.position.y = y
-                req = SpawnModelRequest()
-                req.model_name = "projection"
-                req.model_xml = self.product_xml
-                req.initial_pose = pose
-                req.reference_frame = "world"
-                self.spawn_model(req)
-            except rospy.ServiceException as e:
-                print("Service call failed: %s"%e)
+            req.pose.position.x = x
+            req.pose.position.y = y
+            req.pose.position.z = 0
+            self.ms_pub.publish(req)
+
         elif on_off == 0:
-            rospy.wait_for_service('gazebo/delete_model')
-            try:
-                req = DeleteModelRequest()
-                req.model_name = "projection"
-                self.delete_model(req)
-            except rospy.ServiceException as e:
-                print("Service call failed: %s"%e)
+            req.pose.position.x = 0
+            req.pose.position.y = 0
+            req.pose.position.z = -5
+            self.ms_pub.publish(req)
 
     def get_pose(self, name):
         done = False

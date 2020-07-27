@@ -22,7 +22,7 @@ from gym.utils import seeding
 
 import matplotlib.pyplot as plt
 
-import projection_topic
+import projection_sdf
 
 
 
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     pause = rospy.ServiceProxy('/gazebo/pause_physics', Empty)
     reset_proxy = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)
 
-    p = projection_topic.Projection()
+    p = projection_sdf.Projection()
 
     #REMEMBER!: turtlebot_nn_setup.bash must be executed.
     # env = gym.make('GazeboCircuit2TurtlebotLidarNn-v0')
