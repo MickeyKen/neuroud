@@ -13,8 +13,8 @@ from std_srvs.srv import Empty
 from gazebo_msgs.srv import SpawnModel, DeleteModel
 
 diagonal_dis = math.sqrt(2) * (3.6 + 3.8)
-goal_model_dir = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', '..', 'turtlebot3_simulations',
-                              'turtlebot3_gazebo', 'models', 'Target', 'model.sdf')
+goal_model_dir = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', '..',  '..','neuroud2'
+                                , 'models', 'Target', 'model.sdf')
 
 
 class Env():
@@ -91,7 +91,7 @@ class Env():
         yaw = self.yaw
         rel_theta = self.rel_theta
         diff_angle = self.diff_angle
-        min_range = 0.2
+        min_range = 0.4
         done = False
         arrive = False
 
@@ -160,7 +160,7 @@ class Env():
         data = None
         while data is None:
             try:
-                data = rospy.wait_for_message('scan', LaserScan, timeout=5)
+                data = rospy.wait_for_message('front_laser_scan', LaserScan, timeout=5)
             except:
                 pass
 
@@ -207,7 +207,7 @@ class Env():
         data = None
         while data is None:
             try:
-                data = rospy.wait_for_message('scan', LaserScan, timeout=5)
+                data = rospy.wait_for_message('front_laser_scan', LaserScan, timeout=5)
             except:
                 pass
 
