@@ -25,7 +25,7 @@ class Env():
         self.goal_position.position.y = 0.
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.sub_odom = rospy.Subscriber('odom', Odometry, self.getOdometry)
-        self.reset_proxy = rospy.ServiceProxy('gazebo/reset_simulation', Empty)
+        self.reset_proxy = rospy.ServiceProxy('gazebo/reset_world', Empty)
         self.unpause_proxy = rospy.ServiceProxy('gazebo/unpause_physics', Empty)
         self.pause_proxy = rospy.ServiceProxy('gazebo/pause_physics', Empty)
         self.goal = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
@@ -153,8 +153,10 @@ class Env():
         ang_vel = action[1]
 
         vel_cmd = Twist()
-        vel_cmd.linear.x = linear_vel / 4
-        vel_cmd.angular.z = ang_vel
+        # vel_cmd.linear.x = linear_vel / 4
+        # vel_cmd.angular.z = ang_vel
+        vel_cmd.linear.x = 0.1
+        vel_cmd.angular.z = 0.2
         self.pub_cmd_vel.publish(vel_cmd)
 
         data = None
@@ -180,11 +182,11 @@ class Env():
         rospy.wait_for_service('/gazebo/delete_model')
         self.del_model('target')
 
-        rospy.wait_for_service('gazebo/reset_simulation')
+        rospy.wait_for_service('gazebo/reset_world')
         try:
             self.reset_proxy()
         except (rospy.ServiceException) as e:
-            print("gazebo/reset_simulation service call failed")
+            print("gazebo/reset_world service call failed")
 
         # Build the targetz
         rospy.wait_for_service('/gazebo/spawn_sdf_model')
