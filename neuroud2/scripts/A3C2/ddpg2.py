@@ -2,8 +2,8 @@
 import gym
 import tensorflow as tf
 import numpy as np
-from critic_network import CriticNetwork
-from actor_network_bn import ActorNetwork
+from critic_network2 import CriticNetwork
+from actor_network_bn2 import ActorNetwork
 from replay_buffer import ReplayBuffer
 import tensorflow.compat.v1 as tfc
 
