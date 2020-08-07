@@ -12,7 +12,7 @@ state_dim = 1086
 action_dim = 2
 action_linear_max = 0.25  # m/s
 action_angular_max = 0.5  # rad/s
-is_training = False
+is_training = True
 
 
 def main():
@@ -36,10 +36,8 @@ def main():
 
             while True:
                 a = agent.action(state)
-                print (a)
                 a[0] = np.clip(np.random.normal(a[0], var), 0., 1.)
                 a[1] = np.clip(np.random.normal(a[1], var), -0.5, 0.5)
-                print (a)
 
                 state_, r, done, arrive = env.step(a, past_action)
                 time_step = agent.perceive(state, a, r, state_, done)
@@ -83,10 +81,8 @@ def main():
 
             while True:
                 a = agent.action(state)
-                print (a)
                 a[0] = np.clip(a[0], 0., 1.)
                 a[1] = np.clip(a[1], -0.5, 0.5)
-                print (a)
                 state_, r, done, arrive = env.step(a, past_action)
                 past_action = a
                 state = state_

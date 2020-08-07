@@ -153,10 +153,8 @@ class Env():
         ang_vel = action[1]
 
         vel_cmd = Twist()
-        # vel_cmd.linear.x = linear_vel / 4
-        # vel_cmd.angular.z = ang_vel
-        vel_cmd.linear.x = 0.1
-        vel_cmd.angular.z = 0.2
+        vel_cmd.linear.x = linear_vel / 4
+        vel_cmd.angular.z = ang_vel
         self.pub_cmd_vel.publish(vel_cmd)
 
         data = None
