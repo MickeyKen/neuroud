@@ -41,13 +41,13 @@ def main():
                 a[2] = np.clip(np.random.normal(a[2], var), -2.9670, 2.9670)
                 a[3] = np.clip(np.random.normal(a[3], var), -0.2617, 1.3)
 
-                state_, r, done, arrive = env.step(a, past_action)
+                state_, r, done  = env.step(a, past_action)
                 time_step = agent.perceive(state, a, r, state_, done)
 
-                if arrive:
-                    result = 'Success'
-                else:
-                    result = 'Fail'
+                # if arrive:
+                #     result = 'Success'
+                # else:
+                #     result = 'Fail'
 
                 if time_step > 0:
                     total_reward += r
@@ -67,12 +67,8 @@ def main():
                 state = state_
                 one_round_step += 1
 
-                if arrive:
-                    print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', result)
-                    one_round_step = 0
-
                 if done or one_round_step >= 500:
-                    print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', result)
+                    print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', "Fail")
                     break
 
     else:
