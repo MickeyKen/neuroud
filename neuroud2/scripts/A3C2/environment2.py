@@ -113,8 +113,8 @@ class Env():
         reach = self.calculate_point(action)
         state = [i / 30. for i in state]
 
-        # for pa in past_action:
-        #     state.append(pa)
+        for pa in past_action:
+            state.append(pa)
 
         # state = state + [rel_dis / diagonal_dis, yaw / 360, rel_theta / 360, diff_angle / 180]
         reward = self.setReward(done, reach, action)
