@@ -65,26 +65,22 @@ class Env():
 
         return reward
 
-    def calculate_point(self, action):
-        try:
-            data = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=5)
-        except:
-            pass
-        ud_pose = data.pose[data.name.index("ubiquitous_display")]
+    def calculate_point(self, pdata, action):
+        ud_pose = pdata.pose[pdata.name.index("ubiquitous_display")]
         ud_ang = self.quaternion_to_euler(ud_pose.orientation)
         radian = ud_ang + action[2] - math.radians(90)
         distance = math.tan(action[3]) * 0.998
         x_pos = distance * math.cos(radian)
         y_pos = distance * math.sin(radian)
         for i in range(self.actor_num):
-            actor_pos = data.pose[data.name.index("actor" + str(i))]
+            actor_pos = pdata.pose[pdata.name.index("actor" + str(i))]
             if actor_pos.position.y > y_pos - 0.2 and actor_pos.position < y_pos + 0.2:
                 if actor_pos.position.x - 2.5 > x_pos - 0.2 and actor_pos.position.x - 2.5 < x_pos + 0.2:
                     return True
         return False
 
     def quaternion_to_euler(self, q):
-        print (q.z)
+        # print (q.z)
 
         quat = np.quaternion(q.w, q.x, q.y, q.z)
         euler = quaternion.as_euler_angles(quat)
@@ -92,15 +88,29 @@ class Env():
 
 
     def step(self, action, past_action):
+        print action
+        # rospy.wait_for_service('/gazebo/unpause_physics')
+        # try:
+        #     self.unpause_proxy()
+        # except (rospy.ServiceException) as e:
+        #     print ("/gazebo/unpause_physics service call failed")
+
         linear_vel = action[0]
         ang_vel = action[1]
 
         vel_cmd = Twist()
         vel_cmd.linear.x = linear_vel / 4
-        vel_cmd.angular.z = ang_vel
+        vel_cmd.linear.y = ang_vel / 4
         self.pub_cmd_vel.publish(vel_cmd)
         self.pan_pub.publish(action[2])
         self.tilt_pub.publish(action[3])
+
+        # rospy.wait_for_service('/gazebo/pause_physics')
+        # try:
+        #     #resp_pause = pause.call()
+        #     self.pause_proxy()
+        # except (rospy.ServiceException) as e:
+        #     print ("/gazebo/pause_physics service call failed")
 
         data = None
         while data is None:
@@ -109,8 +119,14 @@ class Env():
             except:
                 pass
 
+        pdata = None
+        while pdata is None:
+            try:
+                pdata = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=5)
+            except:
+                pass
         state, done = self.getState(data)
-        reach = self.calculate_point(action)
+        reach = self.calculate_point(pdata, action)
         state = [i / 30. for i in state]
 
         for pa in past_action:
