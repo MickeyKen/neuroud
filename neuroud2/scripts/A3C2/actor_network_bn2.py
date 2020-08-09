@@ -62,8 +62,8 @@ class ActorNetwork:
 		action = tf.matmul(layer2_bn, W3) + b3
 		action_linear = self.batch_norm_layer(action[:, None, 0],training_phase=is_training,scope_bn='action_linear',activation=tf.sigmoid)
 		action_angular = self.batch_norm_layer(action[:, None, 1],training_phase=is_training,scope_bn='action_angular',activation=tf.tanh)
-		action_pan = self.batch_norm_layer(action[:, None, 2], training_phase=is_training, scope_bn='target_action_pan', activation=tf.tanh)
-		action_tilt = self.batch_norm_layer(action[:, None, 3], training_phase=is_training, scope_bn='target_action_tilt', activation=tf.tanh)
+		action_pan = self.batch_norm_layer(action[:, None, 2], training_phase=is_training, scope_bn='action_pan', activation=tf.tanh)
+		action_tilt = self.batch_norm_layer(action[:, None, 3], training_phase=is_training, scope_bn='action_tilt', activation=tf.tanh)
 		# action_linear = tf.sigmoid(action[:, None, 0])
 		# action_angular = tf.tanh(action[:, None, 1])
 		action = tf.concat([action_linear, action_angular, action_pan, action_tilt], axis=-1)
@@ -84,9 +84,11 @@ class ActorNetwork:
 		action = tf.matmul(layer2_bn, target_net[4]) + target_net[5]
 		action_linear = self.batch_norm_layer(action[:, None, 0], training_phase=is_training, scope_bn='target_action_linear', activation=tf.sigmoid)
 		action_angular = self.batch_norm_layer(action[:, None, 1], training_phase=is_training, scope_bn='target_action_angular', activation=tf.tanh)
+		action_pan = self.batch_norm_layer(action[:, None, 2], training_phase=is_training, scope_bn='target_action_pan', activation=tf.tanh)
+		action_tilt = self.batch_norm_layer(action[:, None, 3], training_phase=is_training, scope_bn='target_action_tilt', activation=tf.tanh)
 		# action_linear = tf.sigmoid(action[:, None, 0])
 		# action_angular = tf.tanh(action[:, None, 1])
-		action = tf.concat([action_linear, action_angular], axis=-1)
+		action = tf.concat([action_linear, action_angular, action_pan, action_tilt], axis=-1)
 
 		return state_input, action, target_update, is_training
 
