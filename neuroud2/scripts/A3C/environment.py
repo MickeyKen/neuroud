@@ -9,7 +9,7 @@ import quaternion
 import time
 
 from std_msgs.msg import Float64, Int32
-from geometry_msgs.msg import Twist, Point, Pose, Vector3
+from geometry_msgs.msg import Twist, Point, Pose, Vector3, Quaternion
 from sensor_msgs.msg import LaserScan
 # from nav_msgs.msg import Odometry
 from std_srvs.srv import Empty
@@ -173,10 +173,11 @@ class Env():
                 target = SpawnModel
                 target.model_name = 'actor0'  # the same with sdf name
                 target.model_xml = goal_urdf
-                self.goal_position.position.x = random.uniform(-4., 4.)
-                self.goal_position.position.y = random.uniform(-4., 4.)
-                self.goal_projector_position.position.x = self.goal_position.position.x - 4.
-                self.goal_projector_position.position.y = self.goal_position.position.y
+                # self.goal_position.position.x = random.uniform(-4., 4.)
+                # self.goal_position.position.y = random.uniform(-4., 4.)
+                # self.goal_projector_position.position.x = self.goal_position.position.x - 4.
+                # self.goal_projector_position.position.y = self.goal_position.position.y
+                self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
                 self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
             except (rospy.ServiceException) as e:
                 print("/gazebo/failed to build the target")
@@ -187,8 +188,30 @@ class Env():
 
         return reward, reach
 
-    def cal_actor_pose(self, xp, yp):
-        ang = random.randint(0, 360)
+    def cal_actor_pose(self, distance):
+        xp = 0.
+        yp = 0.
+        rxp = 0.
+        ryp = 0.
+        rq = Quaternion()
+        while True:
+            xp = random.uniform(-3.6, 3.6)
+            yp = random.uniform(-3.6, 3.6)
+            ang = random.randint(0, 360)
+            rxp = xp + (distance * math.sin(math.radians(ang)))
+            ryp = yp - (distance * math.cos(math.radians(ang)))
+            if abs(rxp) < 3.6 and abs(ryp) < 3.6:
+                q = quaternion.from_euler_angles(0,0,math.radians(ang))
+                print q
+                print type(q)
+                rq.x = q.x
+                rq.y = q.y
+                rq.z = q.z
+                rq.w = q.w
+                print (xp, " ", yp, " ",ang, " ", rxp, " ",ryp)
+                break
+        return xp, yp, rxp, ryp, rq
+
 
     def step(self, action, past_action):
 
@@ -203,7 +226,7 @@ class Env():
 
         vel_cmd = Twist()
         vel_cmd.linear.x = linear_vel / 4
-        vel_cmd.linear.y = ang_vel / 4
+        vel_cmd.angular.z = ang_vel
         self.pub_cmd_vel.publish(vel_cmd)
         self.pan_pub.publish(action[2])
         self.tilt_pub.publish(action[3])
@@ -268,10 +291,11 @@ class Env():
             target = SpawnModel
             target.model_name = 'actor0'  # the same with sdf name
             target.model_xml = goal_urdf
-            self.goal_position.position.x = random.uniform(-4., 4.)
-            self.goal_position.position.y = random.uniform(-4., 4.)
-            self.goal_projector_position.position.x = self.goal_position.position.x - 4.
-            self.goal_projector_position.position.y = self.goal_position.position.y
+            # self.goal_position.position.x = random.uniform(-4., 4.)
+            # self.goal_position.position.y = random.uniform(-4., 4.)
+            # self.goal_projector_position.position.x = self.goal_position.position.x - 4.
+            # self.goal_projector_position.position.y = self.goal_position.position.y
+            self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
             self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
         except (rospy.ServiceException) as e:
             print("/gazebo/failed to build the target")
