@@ -33,7 +33,7 @@ class Env():
         self.goal_projector_position.position.y = 0.
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.sub_odom = rospy.Subscriber('/gazebo/model_states', ModelStates, self.getPose)
-        self.reset_proxy = rospy.ServiceProxy('gazebo/reset_world', Empty)
+        self.reset_proxy = rospy.ServiceProxy('gazebo/reset_simulation', Empty)
         self.unpause_proxy = rospy.ServiceProxy('gazebo/unpause_physics', Empty)
         self.pause_proxy = rospy.ServiceProxy('gazebo/pause_physics', Empty)
         self.goal = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
@@ -187,6 +187,9 @@ class Env():
 
         return reward, reach
 
+    def cal_actor_pose(self, xp, yp):
+        ang = random.randint(0, 360)
+
     def step(self, action, past_action):
 
         rospy.wait_for_service('/gazebo/unpause_physics')
@@ -239,15 +242,24 @@ class Env():
         return np.asarray(state), reward, done, arrive, reach
 
     def reset(self):
+        rospy.wait_for_service('/gazebo/unpause_physics')
+        try:
+            self.unpause_proxy()
+        except (rospy.ServiceException) as e:
+            print ("/gazebo/unpause_physics service call failed")
+
         # Reset the env #
         rospy.wait_for_service('/gazebo/delete_model')
-        self.del_model('actor0')
+        try:
+            self.del_model('actor0')
+        except rospy.ServiceException, e:
+            print ("Service call failed: %s" % e)
 
-        rospy.wait_for_service('gazebo/reset_world')
+        rospy.wait_for_service('gazebo/reset_simulation')
         try:
             self.reset_proxy()
         except (rospy.ServiceException) as e:
-            print("gazebo/reset_world service call failed")
+            print("gazebo/reset_simulation service call failed")
 
         # Build the targetz
         rospy.wait_for_service('/gazebo/spawn_sdf_model')
@@ -263,8 +275,12 @@ class Env():
             self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
         except (rospy.ServiceException) as e:
             print("/gazebo/failed to build the target")
-            
+
         rospy.wait_for_service('/gazebo/unpause_physics')
+        try:
+            self.unpause_proxy()
+        except (rospy.ServiceException) as e:
+            print ("/gazebo/unpause_physics service call failed")
         data = None
         while data is None:
             try:
