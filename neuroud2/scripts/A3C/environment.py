@@ -38,10 +38,18 @@ class Env():
         self.pause_proxy = rospy.ServiceProxy('gazebo/pause_physics', Empty)
         self.goal = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
         self.del_model = rospy.ServiceProxy('/gazebo/delete_model', DeleteModel)
+        self.pan_pub = rospy.Publisher('/ubiquitous_display/pan_controller/command', Float64, queue_size=10)
+        self.tilt_pub = rospy.Publisher('/ubiquitous_display/tilt_controller/command', Float64, queue_size=10)
+        self.image_pub = rospy.Publisher('/ubiquitous_display/image', Int32, queue_size=10)
         self.past_distance = 0.
         self.past_projector_distance = 0.
+        self.yaw = 0
+        self.rel_theta = 0
+        self.diff_angle = 0
         if is_training:
             self.threshold_arrive = 0.2
+            self.min_threshold_arrive = 1.5
+            self.max_threshold_arrive = 5.0
         else:
             self.threshold_arrive = 0.4
 
@@ -52,7 +60,7 @@ class Env():
         return goal_distance
 
     def getPose(self, pose):
-        self.position = pdata.pose[pdata.name.index("ubiquitous_display")]
+        self.position = pose.pose[pose.name.index("ubiquitous_display")]
         orientation = self.position.orientation
         q_x, q_y, q_z, q_w = orientation.x, orientation.y, orientation.z, orientation.w
         yaw = round(math.degrees(math.atan2(2 * (q_x * q_y + q_w * q_z), 1 - 2 * (q_y * q_y + q_z * q_z))))
@@ -62,8 +70,8 @@ class Env():
         else:
              yaw = yaw + 360
 
-        rel_dis_x = round(self.goal_position.position.x - self.position.position.x, 1)
-        rel_dis_y = round(self.goal_position.position.y - self.position.position.y, 1)
+        rel_dis_x = round(self.goal_projector_position.position.x - self.position.position.x, 1)
+        rel_dis_y = round(self.goal_projector_position.position.y - self.position.position.y, 1)
 
         # Calculate the angle between robot and target
         if rel_dis_x > 0 and rel_dis_y > 0:
@@ -104,7 +112,7 @@ class Env():
         distance = 0.998 * math.tan(tilt_rad)
         self.projector_position.position.x = distance * math.cos(radian) + self.position.position.x
         self.projector_position.position.y = distance * math.sin(radian) + self.position.position.y
-        diff = math.hypot((self.goal_projector_position.position.x - 4.) - self.projector_position.position.x, self.goal_projector_position.position.y - self.projector_position.position.y)
+        diff = math.hypot(self.goal_projector_position.position.x - self.projector_position.position.x, self.goal_projector_position.position.y - self.projector_position.position.y)
         if diff <= self.threshold_arrive:
             # done = True
             reach = True
@@ -130,18 +138,18 @@ class Env():
         if min_range > min(scan_range) > 0:
             done = True
 
-        current_distance = math.hypot((self.goal_position.position.x - 4.) - self.position.position.x, self.goal_position.position.y - self.position.y)
-        if current_distance <= self.threshold_arrive:
+        current_distance = math.hypot(self.goal_projector_position.position.x- self.position.position.x, self.goal_projector_position.position.y - self.position.position.y)
+        if current_distance >= self.min_threshold_arrive and current_distance <= self.max_threshold_arrive:
             # done = True
             arrive = True
 
         return scan_range, current_distance, yaw, rel_theta, diff_angle, done, arrive
 
-    def setReward(self, done, arrive, reach, action):
-        current_distance = math.hypot((self.goal_projector_position.position.x - 4.) - self.position.position.x, self.goal_projector_position.position.y - self.position.position.y)
+    def setReward(self, done, arrive, action):
+        current_distance = math.hypot(self.goal_projector_position.position.x - self.position.position.x, self.goal_projector_position.position.y - self.position.position.y)
         distance_rate = (self.past_distance - current_distance)
 
-        current_projector_distance = self.getProjState(action)
+        current_projector_distance, reach = self.getProjState(action)
         distance_projector_rate = (self.past_projector_distance - current_projector_distance)
 
         reward = 250.*distance_rate + 250.*distance_projector_rate
@@ -175,8 +183,9 @@ class Env():
             rospy.wait_for_service('/gazebo/unpause_physics')
             self.goal_distance = self.getGoalDistace()
             arrive = False
+            reach = False
 
-        return reward
+        return reward, reach
 
     def step(self, action, past_action):
 
@@ -218,22 +227,21 @@ class Env():
         except (rospy.ServiceException) as e:
             print ("/gazebo/pause_physics service call failed")
 
-        state, done = self.getState(data)
-        reach = self.calculate_point(pdata, action)
+        state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
         state = [i / 30. for i in state]
 
         for pa in past_action:
             state.append(pa)
 
-        # state = state + [rel_dis / diagonal_dis, yaw / 360, rel_theta / 360, diff_angle / 180]
-        reward = self.setReward(done, reach, action)
+        state = state + [yaw / 360, rel_theta / 360, diff_angle / 180]
+        reward, reach = self.setReward(done, arrive, action)
 
-        return np.asarray(state), reward, done
+        return np.asarray(state), reward, done, arrive, reach
 
     def reset(self):
         # Reset the env #
         rospy.wait_for_service('/gazebo/delete_model')
-        self.del_model('target')
+        self.del_model('actor0')
 
         rospy.wait_for_service('gazebo/reset_world')
         try:
@@ -255,6 +263,7 @@ class Env():
             self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
         except (rospy.ServiceException) as e:
             print("/gazebo/failed to build the target")
+            
         rospy.wait_for_service('/gazebo/unpause_physics')
         data = None
         while data is None:
@@ -264,12 +273,14 @@ class Env():
                 pass
 
         self.goal_distance = self.getGoalDistace()
-        state, done = self.getState(data)
+        state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
         state = [i / 30. for i in state]
 
         state.append(0)
         state.append(0)
         state.append(0)
         state.append(0)
+
+        state = state + [yaw / 360, rel_theta / 360, diff_angle / 180]
 
         return np.asarray(state)
