@@ -46,6 +46,8 @@ class Env():
         self.yaw = 0
         self.rel_theta = 0
         self.diff_angle = 0
+        self.pan_ang = 0.
+        self.tilt_ang = 0.
         if is_training:
             self.threshold_arrive = 0.2
             self.min_threshold_arrive = 1.5
@@ -103,16 +105,16 @@ class Env():
         self.yaw = yaw
         self.diff_angle = diff_angle
 
-    def getProjState(self, action):
+    def getProjState(self):
         reach = False
 
-        pan_rad = action[2]
-        tilt_rad = action[3]
-        radian = math.radians(self.yaw) + pan_rad - math.radians(90)
-        distance = 0.998 * math.tan(tilt_rad)
+        radian = math.radians(self.yaw) + self.pan_ang + math.radians(90)
+        distance = 0.998 * math.tan(self.tilt_ang)
         self.projector_position.position.x = distance * math.cos(radian) + self.position.position.x
         self.projector_position.position.y = distance * math.sin(radian) + self.position.position.y
         diff = math.hypot(self.goal_projector_position.position.x - self.projector_position.position.x, self.goal_projector_position.position.y - self.projector_position.position.y)
+        print ("now: ", self.projector_position.position.x, self.projector_position.position.y)
+        print ("goal: ", self.goal_projector_position.position.x, self.goal_projector_position.position.y)
         if diff <= self.threshold_arrive:
             # done = True
             reach = True
@@ -145,16 +147,27 @@ class Env():
 
         return scan_range, current_distance, yaw, rel_theta, diff_angle, done, arrive
 
-    def setReward(self, done, arrive, action):
+    def setReward(self, done, arrive):
         current_distance = math.hypot(self.goal_projector_position.position.x - self.position.position.x, self.goal_projector_position.position.y - self.position.position.y)
-        distance_rate = (self.past_distance - current_distance)
+        # distance_rate = (self.past_distance - current_distance)
 
-        current_projector_distance, reach = self.getProjState(action)
+        if current_distance <= 3.5:
+            distance_rate = current_distance / 3.5
+        elif current_distance > 3.5 and current_distance <= 10:
+            distance_rate = (10 - current_distance) / 6.5
+        else:
+            distance_rate = 0.
+        print ("distance: ", current_distance, distance_rate)
+
+        current_projector_distance, reach = self.getProjState()
         distance_projector_rate = (self.past_projector_distance - current_projector_distance)
+        print ("projector: ", current_projector_distance, distance_projector_rate)
+        print (arrive, reach)
 
         reward = 250.*distance_rate + 250.*distance_projector_rate
         self.past_distance = current_distance
         self.past_projector_distance = current_projector_distance
+        print ("reward: ", reward)
 
         if done:
             reward = -100.
@@ -230,6 +243,8 @@ class Env():
         self.pub_cmd_vel.publish(vel_cmd)
         self.pan_pub.publish(action[2])
         self.tilt_pub.publish(action[3])
+        self.pan_ang = action[2]
+        self.tilt_ang = action[3]
 
         time.sleep(0.5)
 
@@ -260,7 +275,7 @@ class Env():
             state.append(pa)
 
         state = state + [yaw / 360, rel_theta / 360, diff_angle / 180]
-        reward, reach = self.setReward(done, arrive, action)
+        reward, reach = self.setReward(done, arrive)
 
         return np.asarray(state), reward, done, arrive, reach
 
