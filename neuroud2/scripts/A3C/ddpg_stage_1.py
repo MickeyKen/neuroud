@@ -7,6 +7,8 @@ import tensorflow as tf
 from ddpg import *
 from environment import Env
 
+import matplotlib.pyplot as plt
+
 exploration_decay_start_step = 50000
 state_dim = 1080 + 7
 action_dim = 4
@@ -15,6 +17,9 @@ action_angular_max = 0.5  # rad/s
 is_training = True
 PAN_LIMIT = 2.9670
 TILT_LIMIT = 1.3
+
+x_var = []
+y_var = []
 
 def constrain(input, low, high):
     if input < low:
@@ -26,6 +31,13 @@ def constrain(input, low, high):
 
     return input
 
+def plot(epoch, cumulated_reward):
+    x_var.append(epoch)
+    y_var.append(cumulated_reward)
+    plt.plot(x_var, y_var, color="blue")
+    plt.draw()
+    plt.pause(0.1)
+
 def main():
     rospy.init_node('ddpg_stage_1')
     env = Env(is_training)
@@ -35,6 +47,14 @@ def main():
     print('Action Dimensions: ' + str(action_dim))
     print('Action Max: ' + str(action_linear_max) + ' m/s and ' + str(action_angular_max) + ' rad/s')
 
+    plt.ion()
+    plt.title('Simple Curve Graph')
+    plt.xlabel('Episode')
+    plt.ylabel('Reward')
+    plt.xlim(0,100)
+    plt.ylim(-500,500)
+    plt.grid()
+
     if is_training:
         print('Training mode')
         avg_reward_his = []
@@ -42,9 +62,12 @@ def main():
         var = 1.
         past_action = np.array([0., 0., 0., 0.])
 
+        epoch = 0
+
         while True:
             state = env.reset()
             one_round_step = 0
+            epoch += 1
 
             while True:
                 a = agent.action(state)
@@ -87,6 +110,7 @@ def main():
                     one_round_step = 0
 
                 if done or one_round_step >= 500:
+                    plot(epoch, total_reward)
                     print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', result)
                     break
 
