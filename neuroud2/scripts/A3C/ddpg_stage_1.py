@@ -13,7 +13,18 @@ action_dim = 4
 action_linear_max = 0.25  # m/s
 action_angular_max = 0.5  # rad/s
 is_training = True
+PAN_LIMIT = 2.9670
+TILT_LIMIT = 1.3
 
+def constrain(input, low, high):
+    if input < low:
+      input = low
+    elif input > high:
+      input = high
+    else:
+      input = input
+
+    return input
 
 def main():
     rospy.init_node('ddpg_stage_1')
@@ -29,6 +40,7 @@ def main():
         avg_reward_his = []
         total_reward = 0
         var = 1.
+        past_action = np.array([0., 0., 0., 0.])
 
         while True:
             state = env.reset()
@@ -38,8 +50,11 @@ def main():
                 a = agent.action(state)
                 a[0] = np.clip(np.random.normal(a[0], var), 0., 1.)
                 a[1] = np.clip(np.random.normal(a[1], var), -0.5, 0.5)
-                a[2] = np.clip(np.random.normal(a[2], var), -2.9670, 2.9670)
-                a[3] = np.clip(np.random.normal(a[3], var), -0.2617, 1.3)
+                a[2] = np.clip(np.random.normal(a[2], var), -0.3, 0.3)
+                a[3] = np.clip(np.random.normal(a[3], var), -0.3, 0.3)
+
+                a[2] = constrain(past_action[2] + a[2], -PAN_LIMIT, PAN_LIMIT)
+                a[3] = constrain(past_action[3] + a[3], 0, TILT_LIMIT)
 
                 state_, r, done, arrive, reach = env.step(a, past_action)
                 time_step = agent.perceive(state, a, r, state_, done)
