@@ -109,7 +109,7 @@ class Env():
         reach = False
 
         radian = math.radians(self.yaw) + self.pan_ang + math.radians(90)
-        distance = 0.998 * math.tan(self.tilt_ang)
+        distance = 0.998 * math.tan(math.radians(90) - self.tilt_ang)
         self.projector_position.position.x = distance * math.cos(radian) + self.position.position.x
         self.projector_position.position.y = distance * math.sin(radian) + self.position.position.y
         diff = math.hypot(self.goal_projector_position.position.x - self.projector_position.position.x, self.goal_projector_position.position.y - self.projector_position.position.y)
@@ -164,9 +164,19 @@ class Env():
         print ("projector: ", current_projector_distance, distance_projector_rate)
         print (arrive, reach)
 
-        reward = 250.*distance_rate + 250.*distance_projector_rate
+        cmd_reward = 60.*distance_rate
+        proj_reward = 60.* (distance_projector_rate / 1.75)
+        if proj_reward > 60:
+            proj_reward = 60
+        elif proj_reward < -60:
+            proj_reward = -60
+        else:
+            proj_reward = proj_reward
+
+        reward = cmd_reward + proj_reward
         self.past_distance = current_distance
         self.past_projector_distance = current_projector_distance
+        print ("cmd_reward: ", cmd_reward, "proj_reward: ", proj_reward)
         print ("reward: ", reward)
 
         if done:
