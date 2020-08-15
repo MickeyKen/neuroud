@@ -49,7 +49,7 @@ class Env():
         self.pan_ang = 0.
         self.tilt_ang = 0.
         if is_training:
-            self.threshold_arrive = 0.2
+            self.threshold_arrive = 0.5
             self.min_threshold_arrive = 1.5
             self.max_threshold_arrive = 5.0
         else:
