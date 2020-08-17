@@ -61,6 +61,7 @@ def main():
         total_reward = 0
         var = 1.
         past_action = np.array([0., 0., 0., 0.])
+        calculate_reward = 0
 
         epoch = 0
 
@@ -68,6 +69,7 @@ def main():
             state = env.reset()
             one_round_step = 0
             epoch += 1
+            calculate_reward = 0
 
             while True:
                 a = agent.action(state)
@@ -81,6 +83,7 @@ def main():
 
                 state_, r, done, arrive, reach = env.step(a, past_action)
                 time_step = agent.perceive(state, a, r, state_, done)
+                
                 print("-*-*-*-*-*-*-*-*-*-*")
                 print ("Simple reward: ", r)
                 print("-*-*-*-*-*-*-*-*-*-*")
@@ -92,9 +95,11 @@ def main():
                 if time_step > 0:
                     total_reward += r
 
+                calculate_reward += r
+
                 print (time_step)
                 print("-*-*-*-*-*-*-*-*-*-*")
-                print ("Calculate reward: ", total_reward)
+                print ("Calculate reward: ", calculate_reward)
                 print("-*-*-*-*-*-*-*-*-*-*")
 
                 if time_step % 10000 == 0 and time_step > 0:
@@ -117,10 +122,7 @@ def main():
                     one_round_step = 0
 
                 if done or one_round_step >= 500:
-                    print("-*-*-*-*-*-*-*-*-*-*")
-                    print ("Total reward: ", total_reward)
-                    print("-*-*-*-*-*-*-*-*-*-*")
-                    plot(epoch, total_reward)
+                    plot(epoch, calculate_reward)
                     print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', result)
                     break
 
