@@ -16,6 +16,8 @@ from std_srvs.srv import Empty
 from gazebo_msgs.srv import SpawnModel, DeleteModel
 from gazebo_msgs.msg import ModelStates
 
+import view_plot_pose
+
 diagonal_dis = math.sqrt(2) * (3.6 + 3.8)
 goal_model_dir = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', '..',  '..','neuroud2'
                                 , 'models', 'person_standing', 'model.sdf')
@@ -33,7 +35,7 @@ class Env():
         self.goal_projector_position.position.y = 0.
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.sub_odom = rospy.Subscriber('/gazebo/model_states', ModelStates, self.getPose)
-        self.reset_proxy = rospy.ServiceProxy('gazebo/reset_simulation', Empty)
+        self.reset_proxy = rospy.ServiceProxy('gazebo/reset_world', Empty)
         self.unpause_proxy = rospy.ServiceProxy('gazebo/unpause_physics', Empty)
         self.pause_proxy = rospy.ServiceProxy('gazebo/pause_physics', Empty)
         self.goal = rospy.ServiceProxy('/gazebo/spawn_sdf_model', SpawnModel)
@@ -105,6 +107,8 @@ class Env():
         self.yaw = yaw
         self.diff_angle = diff_angle
 
+        view_plot_pose.view(self.position.position.x,self.position.position.y,self.projector_position.position.x,self.projector_position.position.y, self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y)
+
     def getProjState(self):
         reach = False
 
@@ -173,8 +177,8 @@ class Env():
         else:
             proj_reward = proj_reward
 
-        reward = (cmd_reward + proj_reward) * 0.1
-        
+        reward = (cmd_reward + proj_reward) * 0.01
+
         self.past_distance = current_distance
         self.past_projector_distance = current_projector_distance
         print ("cmd_reward: ", cmd_reward, "proj_reward: ", proj_reward)
@@ -265,12 +269,12 @@ class Env():
                 data = rospy.wait_for_message('front_laser_scan', LaserScan, timeout=5)
             except:
                 pass
-        pdata = None
-        while pdata is None:
-            try:
-                pdata = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=5)
-            except:
-                pass
+        # pdata = None
+        # while pdata is None:
+        #     try:
+        #         pdata = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=5)
+        #     except:
+        #         pass
         rospy.wait_for_service('/gazebo/pause_physics')
 
         try:
@@ -304,11 +308,11 @@ class Env():
         except rospy.ServiceException, e:
             print ("Service call failed: %s" % e)
 
-        rospy.wait_for_service('gazebo/reset_simulation')
+        rospy.wait_for_service('gazebo/reset_world')
         try:
             self.reset_proxy()
         except (rospy.ServiceException) as e:
-            print("gazebo/reset_simulation service call failed")
+            print("gazebo/reset_world service call failed")
 
         # Build the targetz
         rospy.wait_for_service('/gazebo/spawn_sdf_model')
