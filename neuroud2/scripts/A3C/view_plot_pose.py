@@ -4,6 +4,7 @@ import rospy
 
 import sys
 
+import time
 import math
 import numpy as np
 import random
@@ -12,26 +13,49 @@ from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Float64, Int32
 
 def view(x1,y1,x2,y2,x3,y3,x4,y4):
-    plt.plot(int(y1*100),int(x1*100), '*', color="red")
-    plt.plot(int(y2*100),int(x2*100), 'o', color="red")
-    plt.plot(int(y3*100),int(x3*100), '*', color="blue")
-    plt.plot(int(y4*100),int(x4*100), 'o', color="blue")
-    plt.draw()
+    # plt.plot(int(y1*100),int(x1*100), '*', color="red")
+    # plt.plot(int(y2*100),int(x2*100), 'o', color="red")
+    # plt.plot(int(y3*100),int(x3*100), '*', color="blue")
+    # plt.plot(int(y4*100),int(x4*100), 'o', color="blue")
+    line1, = ax.plot(int(y1*100),int(x1*100), '*', color="red")
+    line2, = ax.plot(int(y2*100),int(x2*100), 'o', color="red")
+    line3, = ax.plot(int(y3*100),int(x3*100), '*', color="blue")
+    line4, = ax.plot(int(y4*100),int(x4*100), 'o', color="blue")
+    # plt.draw()
+    # plt.pause(0.01)
+    # plt.clf()
     plt.pause(0.01)
-    plt.clf()
+    line1.remove()
+    line2.remove()
+    line3.remove()
+    line4.remove()
+
 
 if __name__ == '__main__':
 
     rospy.init_node('view_node')
 
-    plt.ion()
-    plt.title('HEATMAP')
-    plt.xlim(-500,500)
-    plt.ylim(-500,500)
-    plt.grid()
-    plt.draw()
-    plt.pause(0.01)
-    plt.clf()
+    fig = plt.figure(figsize=(8,8))
+    ax = fig.add_subplot(111)
+    ax.set_xlim(-500,500)
+    ax.set_ylim(-500,500)
+    ax.set_xticks([-500, -200, 0, 200, 500])
+    ax.set_yticks([-500, -200, 0, 200, 500])
+    #
+    # plt.ion()
+    # plt.title('HEATMAP')
+    # plt.xlim(-500,500)
+    # plt.ylim(-500,500)
+    # plt.grid()
+    # plt.draw()
+    # plt.pause(0.01)
+    # plt.clf()
+
+
+    # while True:
+    #     time.sleep(1)
+    #     view(random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6))
+
 
     # rate = rospy.Rate(3)
     #
