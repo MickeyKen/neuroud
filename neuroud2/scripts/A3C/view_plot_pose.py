@@ -9,8 +9,14 @@ import math
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 from gazebo_msgs.msg import ModelStates
-from std_msgs.msg import Float64, Int32
+from std_msgs.msg import Float64, Int32, Float64MultiArray
+
+def callback(data):
+    view(random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6))
+    # view(data.data[0], data.data[1], data.data[2], data.data[3], data.data[4], data.data[5], data.data[6], data.data[7])
 
 def view(x1,y1,x2,y2,x3,y3,x4,y4):
     # plt.plot(int(y1*100),int(x1*100), '*', color="red")
@@ -42,6 +48,10 @@ if __name__ == '__main__':
     ax.set_xticks([-500, -200, 0, 200, 500])
     ax.set_yticks([-500, -200, 0, 200, 500])
     #
+    rospy.Subscriber("/view", Float64MultiArray, callback)
+
+    rospy.spin()
+    #
     # plt.ion()
     # plt.title('HEATMAP')
     # plt.xlim(-500,500)
@@ -52,9 +62,9 @@ if __name__ == '__main__':
     # plt.clf()
 
 
-    # while True:
-    #     time.sleep(1)
-    #     view(random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6))
+    while True:
+        time.sleep(1)
+        view(random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6),random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6), random.uniform(-3.6, 3.6))
 
 
     # rate = rospy.Rate(3)
