@@ -8,7 +8,7 @@ import random
 import quaternion
 import time
 
-from std_msgs.msg import Float64, Int32
+from std_msgs.msg import Float64, Int32, Float64MultiArray
 from geometry_msgs.msg import Twist, Point, Pose, Vector3, Quaternion
 from sensor_msgs.msg import LaserScan
 # from nav_msgs.msg import Odometry
@@ -16,7 +16,6 @@ from std_srvs.srv import Empty
 from gazebo_msgs.srv import SpawnModel, DeleteModel
 from gazebo_msgs.msg import ModelStates
 
-import view_plot_pose
 
 diagonal_dis = math.sqrt(2) * (3.6 + 3.8)
 goal_model_dir = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', '..',  '..','neuroud2'
@@ -43,6 +42,7 @@ class Env():
         self.pan_pub = rospy.Publisher('/ubiquitous_display/pan_controller/command', Float64, queue_size=10)
         self.tilt_pub = rospy.Publisher('/ubiquitous_display/tilt_controller/command', Float64, queue_size=10)
         self.image_pub = rospy.Publisher('/ubiquitous_display/image', Int32, queue_size=10)
+        self.view_pub = rospy.Publisher('/view', Float64MultiArray, queue_size=10)
         self.past_distance = 0.
         self.past_projector_distance = 0.
         self.yaw = 0
@@ -107,7 +107,10 @@ class Env():
         self.yaw = yaw
         self.diff_angle = diff_angle
 
-        view_plot_pose.view(self.position.position.x,self.position.position.y,self.projector_position.position.x,self.projector_position.position.y, self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y)
+        view_msg = Float64MultiArray()
+        view_msg.data = [self.position.position.x,self.position.position.y,self.projector_position.position.x,self.projector_position.position.y, self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y]
+        self.view_pub.publish(view_msg)
+        # view_plot_pose.view(self.position.position.x,self.position.position.y,self.projector_position.position.x,self.projector_position.position.y, self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y)
 
     def getProjState(self):
         reach = False
