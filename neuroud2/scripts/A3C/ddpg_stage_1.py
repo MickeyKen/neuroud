@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import gym
+import math
 # import gym_gazebo
 import numpy as np
 import tensorflow as tf
@@ -17,9 +18,13 @@ action_angular_max = 0.5  # rad/s
 is_training = True
 PAN_LIMIT = 2.9670
 TILT_LIMIT = 1.3
+TILT_MIN_LIMIT = math.radians(90) - math.atan(5.0/0.998)
+TILT_MAX_LIMIT = math.radians(90) - math.atan(1.5/0.998)
 
 x_var = []
 y_var = []
+x2_var = []
+y2_var = []
 
 def constrain(input, low, high):
     if input < low:
@@ -31,10 +36,13 @@ def constrain(input, low, high):
 
     return input
 
-def plot(epoch, cumulated_reward):
+def plot(epoch, cumulated_reward, average_reward):
     x_var.append(epoch)
     y_var.append(cumulated_reward)
     plt.plot(x_var, y_var, color="blue")
+    x2_var.append(epoch)
+    y2_var.append(average_reward)
+    plt.plot(x2_var, y2_var, color="red")
     plt.draw()
     plt.pause(0.1)
 
@@ -52,7 +60,7 @@ def main():
     plt.xlabel('Episode')
     plt.ylabel('Reward')
     plt.xlim(0,100)
-    plt.ylim(-500,500)
+    plt.ylim(-1000,1000)
     plt.grid()
 
     if is_training:
@@ -68,25 +76,23 @@ def main():
         while True:
             state = env.reset()
             one_round_step = 0
-            epoch += 1
             calculate_reward = 0
+            epoch += 1
+            print ("-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-")
 
             while True:
                 a = agent.action(state)
                 a[0] = np.clip(np.random.normal(a[0], var), 0., 1.)
                 a[1] = np.clip(np.random.normal(a[1], var), -0.5, 0.5)
-                a[2] = np.clip(np.random.normal(a[2], var), -0.3, 0.3)
-                a[3] = np.clip(np.random.normal(a[3], var), -0.3, 0.3)
+                a[2] = np.clip(np.random.normal(a[2], var), -0.1, 0.1)
+                a[3] = np.clip(np.random.normal(a[3], var), -0.1, 0.1)
 
                 a[2] = constrain(past_action[2] + a[2], -PAN_LIMIT, PAN_LIMIT)
-                a[3] = constrain(past_action[3] + a[3], 0, TILT_LIMIT)
+                a[3] = constrain(past_action[3] + a[3], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
 
                 state_, r, done, arrive, reach = env.step(a, past_action)
                 time_step = agent.perceive(state, a, r, state_, done)
-                
-                print("-*-*-*-*-*-*-*-*-*-*")
-                print ("Simple reward: ", r)
-                print("-*-*-*-*-*-*-*-*-*-*")
+
                 if arrive and reach:
                     result = 'Success'
                 else:
@@ -96,11 +102,6 @@ def main():
                     total_reward += r
 
                 calculate_reward += r
-
-                print (time_step)
-                print("-*-*-*-*-*-*-*-*-*-*")
-                print ("Calculate reward: ", calculate_reward)
-                print("-*-*-*-*-*-*-*-*-*-*")
 
                 if time_step % 10000 == 0 and time_step > 0:
                     print('---------------------------------------------------')
@@ -118,11 +119,15 @@ def main():
                 one_round_step += 1
 
                 if arrive and reach:
+                    plot(epoch, calculate_reward, calculate_reward / one_round_step)
+                    print("=============================================================")
                     print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', result)
-                    one_round_step = 0
+                    print("=============================================================")
+                    # one_round_step = 0
+                    break
 
                 if done or one_round_step >= 500:
-                    plot(epoch, calculate_reward)
+                    plot(epoch, calculate_reward, calculate_reward / one_round_step)
                     print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', result)
                     break
 
