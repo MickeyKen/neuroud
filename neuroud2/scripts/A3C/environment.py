@@ -160,7 +160,7 @@ class Env():
 
         if current_distance <= 3.5:
             distance_rate = current_distance / 3.5
-        elif current_distance > 3.5 and current_distance <= 10:
+        elif current_distance > 3.5 and current_distance <= 10.0:
             distance_rate = (10 - current_distance) / 6.5
         else:
             distance_rate = 0.
@@ -171,16 +171,16 @@ class Env():
         print ("projector: ", current_projector_distance, distance_projector_rate)
         print (arrive, reach)
 
-        cmd_reward = 380.*distance_rate
-        proj_reward = 380.* (distance_projector_rate / 1.75)
-        if proj_reward > 380:
-            proj_reward = 380
-        elif proj_reward < -380:
-            proj_reward = -380
+        cmd_reward = 100.*distance_rate
+        proj_reward = 100.* (distance_projector_rate / 4.8600753359177602)
+        if proj_reward > 100:
+            proj_reward = 100
+        elif proj_reward < -100:
+            proj_reward = -100
         else:
             proj_reward = proj_reward
 
-        reward = (cmd_reward + proj_reward) * 0.01
+        reward = (0.2 * cmd_reward + 0.8 * proj_reward) * 0.01
 
         self.past_distance = current_distance
         self.past_projector_distance = current_projector_distance
