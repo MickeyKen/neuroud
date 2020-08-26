@@ -21,6 +21,9 @@ diagonal_dis = math.sqrt(2) * (3.6 + 3.8)
 goal_model_dir = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', '..',  '..','neuroud2'
                                 , 'models', 'person_standing', 'model.sdf')
 
+PAN_LIMIT = math.radians(90)  #2.9670
+TILT_MIN_LIMIT = math.radians(90) - math.atan(3.0/0.998)
+TILT_MAX_LIMIT = math.radians(90) - math.atan(1.5/0.998)
 
 class Env():
     def __init__(self, is_training):
@@ -226,9 +229,9 @@ class Env():
         ryp = 0.
         rq = Quaternion()
         while True:
-            xp = random.uniform(-3.6, 3.6)
-            yp = random.uniform(-3.6, 3.6)
-            ang = random.randint(0, 360)
+            xp = random.uniform(-3.0, 3.0)
+            yp = random.uniform(1.0, 5.0)
+            ang = 0
             rxp = xp + (distance * math.sin(math.radians(ang)))
             ryp = yp - (distance * math.cos(math.radians(ang)))
             if abs(rxp) < 3.6 and abs(ryp) < 3.6:
@@ -254,12 +257,16 @@ class Env():
 
         vel_cmd = Twist()
         vel_cmd.linear.x = linear_vel / 4
-        vel_cmd.angular.z = ang_vel
+        vel_cmd.angular.z = 0.
         self.pub_cmd_vel.publish(vel_cmd)
+
+        # self.pan_ang += action[2]
+        # self.tilt_ang += action[3]
+
         self.pan_pub.publish(action[2])
         self.tilt_pub.publish(action[3])
-        self.pan_ang = action[2]
-        self.tilt_ang = action[3]
+        # self.pan_ang = action[2]
+        # self.tilt_ang = action[3]
 
         time.sleep(0.5)
 
