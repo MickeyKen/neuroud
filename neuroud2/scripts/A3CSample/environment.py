@@ -242,15 +242,13 @@ class Env():
             print ("/gazebo/unpause_physics service call failed")
 
         linear_vel = action[0]
-        ang_vel = action[1]
 
         vel_cmd = Twist()
         vel_cmd.linear.x = linear_vel / 4
-        vel_cmd.angular.z = 0.
         self.pub_cmd_vel.publish(vel_cmd)
 
-        self.pan_ang = self.constrain(self.pan_ang + action[2], -PAN_LIMIT, PAN_LIMIT)
-        self.tilt_ang = self.constrain(self.tilt_ang + action[3], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
+        self.pan_ang = self.constrain(self.pan_ang + action[1], -PAN_LIMIT, PAN_LIMIT)
+        self.tilt_ang = self.constrain(self.tilt_ang + action[2], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
 
         self.pan_pub.publish(self.pan_ang)
         self.tilt_pub.publish(self.tilt_ang)
@@ -355,7 +353,6 @@ class Env():
         state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
         state = [i / 30. for i in state]
 
-        state.append(0)
         state.append(0)
         state.append(0)
         state.append(0)
