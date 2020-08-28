@@ -51,15 +51,10 @@ def main():
 
         for step in range(steps):
             a = agent.action(state)
-            a[0] = np.clip(np.random.normal(a[0], var), 0., 1.)
+            a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
             a[1] = np.clip(np.random.normal(a[1], var), -0.5, 0.5)
             a[2] = np.clip(np.random.normal(a[2], var), -PAN_LIMIT, PAN_LIMIT)
             a[3] = np.clip(np.random.normal(a[3], var), TILT_MIN_LIMIT, TILT_MAX_LIMIT)
-
-            # a[2] = constrain(pan_ang + a[2], -PAN_LIMIT, PAN_LIMIT)
-            # a[3] = constrain(tilt_ang + a[3], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
-            # pan_ang += a[2]
-            # tilt_ang += a[3]
 
             next_state, r, done, arrive, reach = env.step(a, past_action)
             time_step = agent.perceive(state, a, r, next_state, done)
@@ -74,13 +69,10 @@ def main():
                 state = env.reset()
                 for j in range(steps):
                     a = agent.action(state)
-                    a[0] = np.clip(np.random.normal(a[0], var), 0., 1.)
+                    a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
                     a[1] = np.clip(np.random.normal(a[1], var), -0.5, 0.5)
-                    a[2] = np.clip(np.random.normal(a[2], var), -0.1, 0.1)
-                    a[3] = np.clip(np.random.normal(a[3], var), -0.1, 0.1)
-
-                    a[2] = constrain(past_action[2] + a[2], -PAN_LIMIT, PAN_LIMIT)
-                    a[3] = constrain(past_action[3] + a[3], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
+                    a[2] = np.clip(np.random.normal(a[2], var), -PAN_LIMIT, PAN_LIMIT)
+                    a[3] = np.clip(np.random.normal(a[3], var), TILT_MIN_LIMIT, TILT_MAX_LIMIT)
 
                     state, r, done, arrive, reach = env.step(a, past_action)
                     total_reward += r

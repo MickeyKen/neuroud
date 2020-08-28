@@ -260,13 +260,8 @@ class Env():
         vel_cmd.angular.z = 0.
         self.pub_cmd_vel.publish(vel_cmd)
 
-        # self.pan_ang += action[2]
-        # self.tilt_ang += action[3]
-
         self.pan_pub.publish(action[2])
         self.tilt_pub.publish(action[3])
-        # self.pan_ang = action[2]
-        # self.tilt_ang = action[3]
 
         time.sleep(0.5)
 
