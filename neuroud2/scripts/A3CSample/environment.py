@@ -28,7 +28,11 @@ TILT_MAX_LIMIT = math.radians(90) - math.atan(1.5/0.998)
 class Env():
     def __init__(self, is_training):
         self.position = Pose()
+        self.position.position.x = 0.
+        self.position.position.y = 0.
         self.projector_position = Pose()
+        self.projector_position.position.x = 0.
+        self.projector_position.position.y = 0.
         self.goal_position = Pose()
         self.goal_position.position.x = 0.
         self.goal_position.position.y = 0.
@@ -59,6 +63,16 @@ class Env():
             self.max_threshold_arrive = 5.0
         else:
             self.threshold_arrive = 0.4
+
+    def constrain(self, input, low, high):
+        if input < low:
+          input = low
+        elif input > high:
+          input = high
+        else:
+          input = input
+
+        return input
 
     def getGoalDistace(self):
         goal_distance = math.hypot(self.goal_position.position.x - self.position.position.x, self.goal_position.position.y - self.position.position.y)
@@ -161,10 +175,10 @@ class Env():
         current_distance = math.hypot(self.goal_projector_position.position.x - self.position.position.x, self.goal_projector_position.position.y - self.position.position.y)
         # distance_rate = (self.past_distance - current_distance)
 
-        if current_distance <= 3.5:
-            distance_rate = current_distance / 3.5
-        elif current_distance > 3.5 and current_distance <= 10.0:
-            distance_rate = (10 - current_distance) / 6.5
+        if current_distance <= 2.25:
+            distance_rate = current_distance / 2.25
+        elif current_distance > 2.25 and current_distance <= 5.0:
+            distance_rate = (5 - current_distance) / 2.75
         else:
             distance_rate = 0.
         # print ("distance: ", current_distance, distance_rate)
@@ -206,10 +220,6 @@ class Env():
                 target = SpawnModel
                 target.model_name = 'actor0'  # the same with sdf name
                 target.model_xml = goal_urdf
-                # self.goal_position.position.x = random.uniform(-4., 4.)
-                # self.goal_position.position.y = random.uniform(-4., 4.)
-                # self.goal_projector_position.position.x = self.goal_position.position.x - 4.
-                # self.goal_projector_position.position.y = self.goal_position.position.y
                 self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
                 self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
             except (rospy.ServiceException) as e:
@@ -221,27 +231,6 @@ class Env():
         # print ("reward: ", reward)
 
         return reward, reach
-
-    def cal_actor_pose(self, distance):
-        xp = 0.
-        yp = 0.
-        rxp = 0.
-        ryp = 0.
-        rq = Quaternion()
-        while True:
-            xp = random.uniform(-3.0, 3.0)
-            yp = random.uniform(1.0, 5.0)
-            ang = 0
-            rxp = xp + (distance * math.sin(math.radians(ang)))
-            ryp = yp - (distance * math.cos(math.radians(ang)))
-            if abs(rxp) < 3.6 and abs(ryp) < 3.6:
-                q = quaternion.from_euler_angles(0,0,math.radians(ang))
-                rq.x = q.x
-                rq.y = q.y
-                rq.z = q.z
-                rq.w = q.w
-                break
-        return xp, yp, rxp, ryp, rq
 
 
     def step(self, action, past_action):
@@ -260,8 +249,11 @@ class Env():
         vel_cmd.angular.z = 0.
         self.pub_cmd_vel.publish(vel_cmd)
 
-        self.pan_pub.publish(action[2])
-        self.tilt_pub.publish(action[3])
+        self.pan_ang = self.constrain(self.pan_ang + action[2], -PAN_LIMIT, PAN_LIMIT)
+        self.tilt_ang = self.constrain(self.tilt_ang + action[3], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
+
+        self.pan_pub.publish(self.pan_ang)
+        self.tilt_pub.publish(self.tilt_ang)
 
         time.sleep(0.5)
 
@@ -271,14 +263,8 @@ class Env():
                 data = rospy.wait_for_message('front_laser_scan', LaserScan, timeout=5)
             except:
                 pass
-        # pdata = None
-        # while pdata is None:
-        #     try:
-        #         pdata = rospy.wait_for_message('/gazebo/model_states', ModelStates, timeout=5)
-        #     except:
-        #         pass
-        rospy.wait_for_service('/gazebo/pause_physics')
 
+        rospy.wait_for_service('/gazebo/pause_physics')
         try:
             #resp_pause = pause.call()
             self.pause_proxy()
@@ -295,6 +281,24 @@ class Env():
         reward, reach = self.setReward(done, arrive)
 
         return np.asarray(state), reward, done, arrive, reach
+
+    def cal_actor_pose(self, distance):
+        xp = 0.
+        yp = 0.
+        rxp = 0.
+        ryp = 0.
+        rq = Quaternion()
+        xp = random.uniform(-3.0, 3.0)
+        yp = random.uniform(3.0, 5.0)
+        ang = 0
+        rxp = xp + (distance * math.sin(math.radians(ang)))
+        ryp = yp - (distance * math.cos(math.radians(ang)))
+        q = quaternion.from_euler_angles(0,0,math.radians(ang))
+        rq.x = q.x
+        rq.y = q.y
+        rq.z = q.z
+        rq.w = q.w
+        return xp, yp, rxp, ryp, rq
 
     def reset(self):
         rospy.wait_for_service('/gazebo/unpause_physics')
@@ -316,6 +320,7 @@ class Env():
         except (rospy.ServiceException) as e:
             print("gazebo/reset_world service call failed")
 
+
         # Build the targetz
         rospy.wait_for_service('/gazebo/spawn_sdf_model')
         try:
@@ -323,10 +328,6 @@ class Env():
             target = SpawnModel
             target.model_name = 'actor0'  # the same with sdf name
             target.model_xml = goal_urdf
-            # self.goal_position.position.x = random.uniform(-4., 4.)
-            # self.goal_position.position.y = random.uniform(-4., 4.)
-            # self.goal_projector_position.position.x = self.goal_position.position.x - 4.
-            # self.goal_projector_position.position.y = self.goal_position.position.y
             self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
             self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
         except (rospy.ServiceException) as e:
@@ -337,12 +338,18 @@ class Env():
             self.unpause_proxy()
         except (rospy.ServiceException) as e:
             print ("/gazebo/unpause_physics service call failed")
+
         data = None
         while data is None:
             try:
                 data = rospy.wait_for_message('front_laser_scan', LaserScan, timeout=5)
             except:
                 pass
+
+        self.pan_ang = 0.
+        self.tilt_ang = 0.
+        self.pan_pub.publish(self.pan_ang)
+        self.tilt_pub.publish(self.tilt_ang)
 
         self.goal_distance = self.getGoalDistace()
         state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
