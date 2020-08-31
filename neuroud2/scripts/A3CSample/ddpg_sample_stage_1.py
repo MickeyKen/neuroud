@@ -10,7 +10,7 @@ from environment import Env
 
 
 exploration_decay_start_step = 50000
-state_dim = 1080 + 3
+state_dim = 541 + 3
 action_dim = 3
 action_linear_max = 1.  # m/s
 action_angular_max = 0.5  # rad/s
@@ -59,10 +59,10 @@ def main():
             time_step = agent.perceive(state, a, r, next_state, done)
             state = next_state
 
-            if done:
+            if done == True or reach == True:
                 break
         # Testing:
-        if episode % 10 == 0 and episode > 10:
+        if episode % 10 == 0 and episode >= 10:
             total_reward = 0
             for i in range(TEST):
                 state = env.reset()
@@ -73,7 +73,7 @@ def main():
                     a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
                     state, r, done, arrive, reach = env.step(a, past_action)
                     total_reward += r
-                    if done:
+                    if done == True or reach == True:
                         break
             ave_reward = total_reward/TEST
             print ('episode: ',episode,'Evaluation Average Reward:',ave_reward)

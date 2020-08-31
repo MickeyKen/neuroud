@@ -210,24 +210,24 @@ class Env():
         if arrive == True and reach == True:
             reward = 120.
             self.pub_cmd_vel.publish(Twist())
-            rospy.wait_for_service('/gazebo/delete_model')
-            self.del_model('actor0')
-
-            # Build the target
-            rospy.wait_for_service('/gazebo/spawn_sdf_model')
-            try:
-                goal_urdf = open(goal_model_dir, "r").read()
-                target = SpawnModel
-                target.model_name = 'actor0'  # the same with sdf name
-                target.model_xml = goal_urdf
-                self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
-                self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
-            except (rospy.ServiceException) as e:
-                print("/gazebo/failed to build the target")
-            rospy.wait_for_service('/gazebo/unpause_physics')
-            self.goal_distance = self.getGoalDistace()
-            arrive = False
-            reach = False
+            # rospy.wait_for_service('/gazebo/delete_model')
+            # self.del_model('actor0')
+            #
+            # # Build the target
+            # rospy.wait_for_service('/gazebo/spawn_sdf_model')
+            # try:
+            #     goal_urdf = open(goal_model_dir, "r").read()
+            #     target = SpawnModel
+            #     target.model_name = 'actor0'  # the same with sdf name
+            #     target.model_xml = goal_urdf
+            #     self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
+            #     self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
+            # except (rospy.ServiceException) as e:
+            #     print("/gazebo/failed to build the target")
+            # rospy.wait_for_service('/gazebo/unpause_physics')
+            # self.goal_distance = self.getGoalDistace()
+            # arrive = False
+            # reach = False
         # print ("reward: ", reward)
 
         return reward, reach
@@ -258,7 +258,7 @@ class Env():
         data = None
         while data is None:
             try:
-                data = rospy.wait_for_message('front_laser_scan', LaserScan, timeout=5)
+                data = rospy.wait_for_message('scan_filtered', LaserScan, timeout=5)
             except:
                 pass
 
@@ -340,7 +340,7 @@ class Env():
         data = None
         while data is None:
             try:
-                data = rospy.wait_for_message('front_laser_scan', LaserScan, timeout=5)
+                data = rospy.wait_for_message('scan_filtered', LaserScan, timeout=5)
             except:
                 pass
 
