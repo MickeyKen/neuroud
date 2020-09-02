@@ -51,6 +51,7 @@ class Env():
         self.image_pub = rospy.Publisher('/ubiquitous_display/image', Int32, queue_size=10)
         self.view_pub = rospy.Publisher('/view', Float64MultiArray, queue_size=10)
         self.past_distance = 0.
+        self.past_distance_rate = 0.
         self.past_projector_distance = 0.
         self.yaw = 0
         self.rel_theta = 0
@@ -188,7 +189,7 @@ class Env():
         # print ("projector: ", current_projector_distance, distance_projector_rate)
         # print (arrive, reach)
 
-        cmd_reward = 100.*distance_rate
+        cmd_reward = 100.* (distance_rate - self.past_distance_rate)
         proj_reward = 100.* (distance_projector_rate / 4.8600753359177602)
         if proj_reward > 100:
             proj_reward = 100
@@ -197,11 +198,12 @@ class Env():
         else:
             proj_reward = proj_reward
 
-        reward = (0.2 * cmd_reward + 0.8 * proj_reward) * 0.01
+        reward = (0.4 * cmd_reward + 0.6 * proj_reward) * 0.01
 
         self.past_distance = current_distance
+        self.past_distance_rate = distance_rate
         self.past_projector_distance = current_projector_distance
-        # print ("cmd_reward: ", cmd_reward, "proj_reward: ", proj_reward)
+        print ("cmd_reward: ", round(cmd_reward,2), "proj_reward: ", round(proj_reward,2), "total_reward", round(reward,2))
 
         if done:
             reward = -100.
@@ -348,6 +350,8 @@ class Env():
         self.tilt_ang = 0.
         self.pan_pub.publish(self.pan_ang)
         self.tilt_pub.publish(self.tilt_ang)
+
+        self.past_distance_rate = 0.
 
         self.goal_distance = self.getGoalDistace()
         state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
