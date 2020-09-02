@@ -24,6 +24,8 @@ EPISODES = 100000
 steps = 500
 TEST = 3
 
+path = 'output.txt'
+
 def constrain(input, low, high):
     if input < low:
       input = low
@@ -77,6 +79,8 @@ def main():
                         break
             ave_reward = total_reward/TEST
             print ('episode: ',episode,'Evaluation Average Reward:',ave_reward)
+            with open(path, mode='a') as f:
+                f.write('episode: '+str(episode)+'  Evaluation Average Reward:'+str(ave_reward)+"\n")
 
 if __name__ == '__main__':
     main()
