@@ -21,8 +21,10 @@ TILT_MIN_LIMIT = math.radians(90) - math.atan(3.0/0.998)
 TILT_MAX_LIMIT = math.radians(90) - math.atan(1.5/0.998)
 
 EPISODES = 100000
-steps = 500
+steps = 300
 TEST = 3
+
+is_training = True
 
 path = 'output.txt'
 
@@ -47,40 +49,70 @@ def main():
 
     var = 1.
 
-    for episode in range(EPISODES):
-        state = env.reset()
-        past_action = np.array([0., 0., 0.])
+    if is_training:
+        for episode in range(EPISODES):
+            state = env.reset()
+            past_action = np.array([0., 0., 0.])
 
-        for step in range(steps):
-            a = agent.action(state)
-            a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
-            a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
-            a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
+            for step in range(steps):
+                a = agent.action(state)
+                a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
+                a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
+                a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
 
-            next_state, r, done, arrive, reach = env.step(a, past_action)
-            time_step = agent.perceive(state, a, r, next_state, done)
-            state = next_state
+                next_state, r, done, arrive, reach = env.step(a, past_action)
+                time_step = agent.perceive(state, a, r, next_state, done)
+                state = next_state
+                past_action = a
 
-            if done == True or reach == True:
-                break
-        # Testing:
-        if episode % 10 == 0 and episode >= 10:
+                if done == True or reach == True:
+                    break
+            # Testing:
+            if episode % 10 == 0 and episode >= 10:
+                total_reward = 0
+                for i in range(TEST):
+                    state = env.reset()
+                    for j in range(steps):
+                        a = agent.action(state)
+                        a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
+                        a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
+                        a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
+                        state, r, done, arrive, reach = env.step(a, past_action)
+                        total_reward += r
+                        if done == True or reach == True:
+                            break
+                ave_reward = total_reward/TEST
+                print ('episode: ',episode,'Evaluation Average Reward:',ave_reward)
+                with open(path, mode='a') as f:
+                    f.write('episode: '+str(episode)+'  Evaluation Average Reward:'+str(ave_reward)+"\n")
+            else:
+                print ('Finished episode: ',episode)
+
+    else:
+        print('Testing mode')
+        for episode in range(EPISODES):
+            state = env.reset()
+            past_action = np.array([0., 0., 0.])
+            one_round_step = 0
             total_reward = 0
-            for i in range(TEST):
-                state = env.reset()
-                for j in range(steps):
-                    a = agent.action(state)
-                    a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
-                    a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
-                    a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
-                    state, r, done, arrive, reach = env.step(a, past_action)
-                    total_reward += r
-                    if done == True or reach == True:
-                        break
+
+            for step in range(steps):
+                a = agent.action(state)
+                a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
+                a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
+                a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
+                state_, r, done, arrive, reach = env.step(a, past_action)
+                total_reward += r
+                past_action = a
+                state = state_
+                one_round_step += 1
+
+
+                if done == True or reach == True:
+                    break
             ave_reward = total_reward/TEST
             print ('episode: ',episode,'Evaluation Average Reward:',ave_reward)
             with open(path, mode='a') as f:
                 f.write('episode: '+str(episode)+'  Evaluation Average Reward:'+str(ave_reward)+"\n")
-
 if __name__ == '__main__':
     main()
