@@ -63,8 +63,9 @@ class Env():
             self.min_threshold_arrive = 1.5
             self.max_threshold_arrive = 5.0
         else:
-            self.threshold_arrive = 0.4
-
+            self.threshold_arrive = 0.5
+            self.min_threshold_arrive = 1.5
+            self.max_threshold_arrive = 5.0
     def constrain(self, input, low, high):
         if input < low:
           input = low
@@ -176,12 +177,11 @@ class Env():
         current_distance = math.hypot(self.goal_projector_position.position.x - self.position.position.x, self.goal_projector_position.position.y - self.position.position.y)
         # distance_rate = (self.past_distance - current_distance)
 
-        if current_distance <= 2.25:
-            distance_rate = current_distance / 2.25
-        elif current_distance > 2.25 and current_distance <= 5.0:
-            distance_rate = (5 - current_distance) / 2.75
+        if current_distance >= 2.5:
+            distance_rate = 2.5 / current_distance
         else:
-            distance_rate = 0.
+            distance_rate = 1 - (current_distance / 2.5)
+
         # print ("distance: ", current_distance, distance_rate)
 
         current_projector_distance, reach = self.getProjState()
@@ -189,14 +189,9 @@ class Env():
         # print ("projector: ", current_projector_distance, distance_projector_rate)
         # print (arrive, reach)
 
-        cmd_reward = 100.* (distance_rate - self.past_distance_rate)
-        proj_reward = 100.* (distance_projector_rate / 4.8600753359177602)
-        if proj_reward > 100:
-            proj_reward = 100
-        elif proj_reward < -100:
-            proj_reward = -100
-        else:
-            proj_reward = proj_reward
+        cmd_reward = 100.* distance_rate
+        proj_reward = 100.* (distance_projector_rate / 1.1360454260284)
+        proj_reward = self.constrain(proj_reward, -100, 100)
 
         reward = (0.4 * cmd_reward + 0.6 * proj_reward) * 0.01
 
