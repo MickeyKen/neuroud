@@ -205,26 +205,28 @@ class Env():
             self.pub_cmd_vel.publish(Twist())
 
         if arrive == True and reach == True:
-            reward = 120.
-            self.pub_cmd_vel.publish(Twist())
-            # rospy.wait_for_service('/gazebo/delete_model')
-            # self.del_model('actor0')
-            #
-            # # Build the target
-            # rospy.wait_for_service('/gazebo/spawn_sdf_model')
-            # try:
-            #     goal_urdf = open(goal_model_dir, "r").read()
-            #     target = SpawnModel
-            #     target.model_name = 'actor0'  # the same with sdf name
-            #     target.model_xml = goal_urdf
-            #     self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
-            #     self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
-            # except (rospy.ServiceException) as e:
-            #     print("/gazebo/failed to build the target")
-            # rospy.wait_for_service('/gazebo/unpause_physics')
-            # self.goal_distance = self.getGoalDistace()
-            # arrive = False
-            # reach = False
+            reward = 200.
+
+            rospy.wait_for_service('/gazebo/delete_model')
+            try:
+                self.del_model('actor0')
+            except rospy.ServiceException, e:
+                print ("Service call failed: %s" % e)
+
+            rospy.wait_for_service('/gazebo/spawn_sdf_model')
+            try:
+                goal_urdf = open(goal_model_dir, "r").read()
+                target = SpawnModel
+                target.model_name = 'actor0'  # the same with sdf name
+                target.model_xml = goal_urdf
+                self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
+                self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
+            except (rospy.ServiceException) as e:
+                print("/gazebo/failed to build the target")
+
+            self.goal_distance = self.getGoalDistace()
+            arrive = False
+            reach = False
         # print ("reward: ", reward)
 
         return reward, reach
@@ -342,11 +344,11 @@ class Env():
                 pass
 
         self.pan_ang = 0.
-        self.tilt_ang = 0.
+        self.tilt_ang = TILT_MIN_LIMIT
         self.pan_pub.publish(self.pan_ang)
         self.tilt_pub.publish(self.tilt_ang)
 
-        self.past_distance_rate = 0.
+        self.past_distance_rate, reach = self.getProjState()
 
         self.goal_distance = self.getGoalDistace()
         state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
