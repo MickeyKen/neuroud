@@ -75,7 +75,7 @@ class DDPG:
             self.time_step += 1
             self.train()
 
-        if self.time_step % 1000 == 0 and self.time_step > 0:
+        if self.time_step % 10000 == 0 and self.time_step > 0:
             self.actor_network.save_network(self.time_step)
             self.critic_network.save_network(self.time_step)
 
