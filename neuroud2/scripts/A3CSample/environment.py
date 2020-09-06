@@ -151,7 +151,7 @@ class Env():
         yaw = self.yaw
         rel_theta = self.rel_theta
         diff_angle = self.diff_angle
-        min_range = 0.4
+        min_range = 0.4 + 0.271
         done = False
         arrive = False
 
