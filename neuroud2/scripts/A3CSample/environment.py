@@ -198,7 +198,7 @@ class Env():
         self.past_distance = current_distance
         self.past_distance_rate = distance_rate
         self.past_projector_distance = current_projector_distance
-        print ("cmd_reward: ", round(cmd_reward,2), "proj_reward: ", round(proj_reward,2), "total_reward", round(reward,2))
+        # print ("cmd_reward: ", round(cmd_reward,2), "proj_reward: ", round(proj_reward,2), "total_reward", round(reward,2))
 
         if done:
             reward = -100.
@@ -225,8 +225,8 @@ class Env():
                 print("/gazebo/failed to build the target")
 
             self.goal_distance = self.getGoalDistace()
-            arrive = False
-            reach = False
+            # arrive = False
+            # reach = False
         # print ("reward: ", reward)
 
         return reward, reach
