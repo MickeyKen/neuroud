@@ -20,8 +20,7 @@ TILT_LIMIT = 1.3
 TILT_MIN_LIMIT = math.radians(90) - math.atan(3.0/0.998)
 TILT_MAX_LIMIT = math.radians(90) - math.atan(1.5/0.998)
 
-EPISODES = 100000
-steps = 300
+EPISODES = 10000
 TEST = 3
 
 is_training = True
@@ -53,40 +52,71 @@ def main():
         for episode in range(EPISODES):
             state = env.reset()
             past_action = np.array([0., 0., 0.])
+            one_round_step = 0
+            cumulated_reward = 0.
+            reach_count = 0
 
-            for step in range(steps):
+            while True:
                 a = agent.action(state)
                 a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
                 a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
                 a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
 
-                next_state, r, done, arrive, reach = env.step(a, past_action)
-                time_step = agent.perceive(state, a, r, next_state, done)
-                state = next_state
+                state_, r, done, arrive, reach = env.step(a, past_action)
+                time_step = agent.perceive(state, a, r, state_, done)
+                state = state_
                 past_action = a
 
-                if done == True or reach == True:
+                cumulated_reward += r
+
+                if time_step % 5 == 0 and time_step > exploration_decay_start_step:
+                    var *= 0.9999
+
+                one_round_step += 1
+
+                if reach == True and arrive == True:
+                    reach_count += 1
+
+                if done or one_round_step >= 300:
+                    print ('Finished episode: ',episode,'Compulated Reward: ',cumulated_reward, 'Serviced count: ', reach_count)
+                    print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', "Fail")
+                    filehandle = open(path, 'a+')
+                    filehandle.write(str(episode) + ',' + str(one_round_step) + ',' + str(cumulated_reward)+"\n")
+                    filehandle.close()
                     break
+
             # Testing:
-            if episode % 10 == 0 and episode >= 10:
-                total_reward = 0
-                for i in range(TEST):
-                    state = env.reset()
-                    for j in range(steps):
-                        a = agent.action(state)
-                        a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
-                        a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
-                        a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
-                        state, r, done, arrive, reach = env.step(a, past_action)
-                        total_reward += r
-                        if done == True or reach == True:
-                            break
-                ave_reward = total_reward/TEST
-                print ('episode: ',episode,'Evaluation Average Reward:',ave_reward)
-                with open(path, mode='a') as f:
-                    f.write('episode: '+str(episode)+'  Evaluation Average Reward:'+str(ave_reward)+"\n")
-            else:
-                print ('Finished episode: ',episode)
+            # if episode % 10 == 0 and episode >= 10:
+            #     total_reward = 0
+            #     for i in range(TEST):
+            #         state = env.reset()
+            #         past_action = np.array([0., 0., 0.])
+            #         one_round_step = 0
+            #
+            #         for j in range(steps):
+            #             a = agent.action(state)
+            #             a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
+            #             a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
+            #             a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
+            #             state_, r, done, arrive, reach = env.step(a, past_action)
+            #             total_reward += r
+            #             past_action = a
+            #             state = state_
+            #             one_round_step += 1
+            #
+            #             if done or one_round_step >= 500:
+            #                 print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', "Fail")
+            #                 break
+            #
+            #     ave_reward = total_reward/TEST
+            #     print ('episode: ',episode,'Evaluation Average Reward:',ave_reward)
+                #
+                # filehandle = open(path, 'a')
+                # filehandle.write(str(episode) + ',' + str(ave_reward)+"\n")
+                # filehandle.close()
+            #
+            # else:
+            #     print ('Finished episode: ',episode)
 
     else:
         print('Testing mode')
@@ -96,7 +126,7 @@ def main():
             one_round_step = 0
             total_reward = 0
 
-            for step in range(steps):
+            while True:
                 a = agent.action(state)
                 a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
                 a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
@@ -107,12 +137,15 @@ def main():
                 state = state_
                 one_round_step += 1
 
-
-                if done == True or reach == True:
+                if done or one_round_step >= 500:
+                    print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', "Fail")
                     break
+
             ave_reward = total_reward/TEST
             print ('episode: ',episode,'Evaluation Average Reward:',ave_reward)
-            with open(path, mode='a') as f:
-                f.write('episode: '+str(episode)+'  Evaluation Average Reward:'+str(ave_reward)+"\n")
+
+            filehandle = open(path, 'a')
+            filehandle.write('episode: '+str(episode)+'  Evaluation Average Reward:'+str(ave_reward)+"\n")
+            filehandle.close()
 if __name__ == '__main__':
     main()
