@@ -26,9 +26,9 @@ class Subscribe():
         self.y4 = 0.
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111)
-        ax.set_xlim(-400,400)
+        ax.set_xlim(-200,600)
         ax.set_ylim(-400,400)
-        ax.set_xticks([-400, -300, -200, -100, 0, 100, 200, 300, 400])
+        ax.set_xticks([-200, -100, 0, 100, 200, 300, 400, 500, 600])
         ax.set_yticks([-400, -300, -200, -100, 0, 100, 200, 300, 400])
         plt.grid(b=True, which='major', color='#666666', linestyle='-')
         plt.grid(b=True, which='minor', color='#999999', linestyle='-', alpha=0.2)
@@ -48,6 +48,10 @@ class Subscribe():
             line2.remove()
             line3.remove()
             line4.remove()
+
+            # diff = math.hypot(self.y4-self.y2, -self.x4+self.x2)
+            # diff2 = math.hypot(self.y4-self.y2, self.x4-self.x2)
+            # print diff, diff2
 
             rate.sleep()
 
