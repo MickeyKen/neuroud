@@ -60,13 +60,11 @@ class ActorNetwork:
 		layer2 = tf.matmul(layer1_bn,W2) + b2
 		layer2_bn = self.batch_norm_layer(layer2,training_phase=is_training,scope_bn='batch_norm_2',activation=tf.nn.relu)
 		action = tf.matmul(layer2_bn, W3) + b3
-		action_linear = self.batch_norm_layer(action[:, None, 0],training_phase=is_training,scope_bn='action_linear',activation=tf.sigmoid)
-		action_angular = self.batch_norm_layer(action[:, None, 1],training_phase=is_training,scope_bn='action_angular',activation=tf.tanh)
-		action_pan = self.batch_norm_layer(action[:, None, 2], training_phase=is_training, scope_bn='action_pan', activation=tf.tanh)
-		action_tilt = self.batch_norm_layer(action[:, None, 3], training_phase=is_training, scope_bn='action_tilt', activation=tf.tanh)
+		action_pan = self.batch_norm_layer(action[:, None, 0], training_phase=is_training, scope_bn='action_pan', activation=tf.tanh)
+		action_tilt = self.batch_norm_layer(action[:, None, 1], training_phase=is_training, scope_bn='action_tilt', activation=tf.tanh)
 		# action_linear = tf.sigmoid(action[:, None, 0])
 		# action_angular = tf.tanh(action[:, None, 1])
-		action = tf.concat([action_linear, action_angular, action_pan, action_tilt], axis=-1)
+		action = tf.concat([action_pan, action_tilt], axis=-1)
 
 		return state_input, action, [W1,b1,W2,b2,W3,b3], is_training
 
@@ -82,13 +80,11 @@ class ActorNetwork:
 		layer2 = tf.matmul(layer1_bn,target_net[2]) + target_net[3]
 		layer2_bn = self.batch_norm_layer(layer2,training_phase=is_training,scope_bn='target_batch_norm_2',activation=tf.nn.relu)
 		action = tf.matmul(layer2_bn, target_net[4]) + target_net[5]
-		action_linear = self.batch_norm_layer(action[:, None, 0], training_phase=is_training, scope_bn='target_action_linear', activation=tf.sigmoid)
-		action_angular = self.batch_norm_layer(action[:, None, 1], training_phase=is_training, scope_bn='target_action_angular', activation=tf.tanh)
-		action_pan = self.batch_norm_layer(action[:, None, 2], training_phase=is_training, scope_bn='target_action_pan', activation=tf.tanh)
-		action_tilt = self.batch_norm_layer(action[:, None, 3], training_phase=is_training, scope_bn='target_action_tilt', activation=tf.tanh)
+		action_pan = self.batch_norm_layer(action[:, None, 0], training_phase=is_training, scope_bn='target_action_pan', activation=tf.tanh)
+		action_tilt = self.batch_norm_layer(action[:, None, 1], training_phase=is_training, scope_bn='target_action_tilt', activation=tf.tanh)
 		# action_linear = tf.sigmoid(action[:, None, 0])
 		# action_angular = tf.tanh(action[:, None, 1])
-		action = tf.concat([action_linear, action_angular, action_pan, action_tilt], axis=-1)
+		action = tf.concat([action_pan, action_tilt], axis=-1)
 
 		return state_input, action, target_update, is_training
 
