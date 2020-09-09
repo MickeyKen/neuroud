@@ -59,6 +59,7 @@ class Env():
         self.diff_angle = 0
         self.pan_ang = 0.
         self.tilt_ang = 0.
+        self.v = 0.
         if is_training:
             self.threshold_arrive = 0.25
             self.min_threshold_arrive = 1.5
@@ -184,30 +185,33 @@ class Env():
         # distance_rate = (self.past_distance - current_distance)
 
         if current_distance >= 2.25:
-            distance_rate = 2.25 / current_distance
+            r_c = ((2.25 - current_distance) ** 2) / 2
         else:
-            distance_rate = 1 - (current_distance / 2.25)
+            r_c = 1 - (current_distance / 2.25)
 
         # print ("distance: ", current_distance, distance_rate)
+        print (current_distance, r_c)
 
         current_projector_distance, reach = self.getProjState()
         # distance_projector_rate = (self.past_projector_distance - current_projector_distance)
-        if current_projector_distance <= 0.25:
-            projector_distance_rate = 1
+        if current_projector_distance >= 0.25:
+            r_p = ((0.25 - current_projector_distance) ** 2) / 2
         else:
-            projector_distance_rate = 0.25 / current_projector_distance
+            r_p = 0
+        print (current_projector_distance, r_p)
 
-        cmd_reward = 100.* distance_rate
-        proj_reward = 100. * projector_distance_rate
+        # cmd_reward = 100.* distance_rate
+        # proj_reward = 100. * projector_distance_rate
         # proj_reward = 100.* (distance_projector_rate / 1.1360454260284)
         # proj_reward = self.constrain(proj_reward, -100, 100)
 
-        reward = (0.4 * cmd_reward + 0.6 * proj_reward) * 0.01
-
-        self.past_distance = current_distance
-        self.past_distance_rate = distance_rate
-        self.past_projector_distance = current_projector_distance
-        print ("cmd_reward: ", round(cmd_reward,2), "proj_reward: ", round(proj_reward,2), "total_reward", round(reward,2))
+        # reward = (0.4 * cmd_reward + 0.6 * proj_reward) * 0.01
+        reward = 1 - r_c - r_p - self.v
+        # 
+        # self.past_distance = current_distance
+        # self.past_distance_rate = distance_rate
+        # self.past_projector_distance = current_projector_distance
+        print ("cmd_reward: ", round(r_c,2), "proj_reward: ", round(r_p,2), "total_reward", round(reward,2))
 
         if done:
             reward = -100.
@@ -254,6 +258,8 @@ class Env():
         vel_cmd = Twist()
         vel_cmd.linear.x = linear_vel / 4
         self.pub_cmd_vel.publish(vel_cmd)
+
+        self.v = linear_vel / 4
 
         # self.pan_ang = self.constrain(self.pan_ang + action[1], -PAN_LIMIT, PAN_LIMIT)
         # self.tilt_ang = self.constrain(self.tilt_ang + action[2], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
