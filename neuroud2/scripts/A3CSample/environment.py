@@ -10,7 +10,7 @@ import time
 
 from std_msgs.msg import Float64, Int32, Float64MultiArray
 from geometry_msgs.msg import Twist, Point, Pose, Vector3, Quaternion
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import LaserScan, JointState
 # from nav_msgs.msg import Odometry
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SpawnModel, DeleteModel
@@ -41,6 +41,7 @@ class Env():
         self.goal_projector_position.position.y = 0.
         self.pub_cmd_vel = rospy.Publisher('cmd_vel', Twist, queue_size=10)
         self.sub_odom = rospy.Subscriber('/gazebo/model_states', ModelStates, self.getPose)
+        self.sub_jsp = rospy.Subscriber('/ubiquitous_display/joint_states', JointState, self.getJsp)
         self.reset_proxy = rospy.ServiceProxy('gazebo/reset_world', Empty)
         self.unpause_proxy = rospy.ServiceProxy('gazebo/unpause_physics', Empty)
         self.pause_proxy = rospy.ServiceProxy('gazebo/pause_physics', Empty)
@@ -66,6 +67,7 @@ class Env():
             self.threshold_arrive = 0.5
             self.min_threshold_arrive = 1.5
             self.max_threshold_arrive = 3.0
+
     def constrain(self, input, low, high):
         if input < low:
           input = low
@@ -81,6 +83,10 @@ class Env():
         self.past_distance = goal_distance
 
         return goal_distance
+
+    def getJsp(self, jsp):
+        self.pan_ang = jsp.position[jsp.name.index("pan_joint")]
+        self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")]
 
     def getPose(self, pose):
         self.position = pose.pose[pose.name.index("ubiquitous_display")]
@@ -177,28 +183,31 @@ class Env():
         current_distance = math.hypot(self.goal_projector_position.position.x - self.position.position.x, self.goal_projector_position.position.y - self.position.position.y)
         # distance_rate = (self.past_distance - current_distance)
 
-        if current_distance >= 2.5:
-            distance_rate = 2.5 / current_distance
+        if current_distance >= 2.25:
+            distance_rate = 2.25 / current_distance
         else:
-            distance_rate = 1 - (current_distance / 2.5)
+            distance_rate = 1 - (current_distance / 2.25)
 
         # print ("distance: ", current_distance, distance_rate)
 
         current_projector_distance, reach = self.getProjState()
-        distance_projector_rate = (self.past_projector_distance - current_projector_distance)
-        # print ("projector: ", current_projector_distance, distance_projector_rate)
-        # print (arrive, reach)
+        # distance_projector_rate = (self.past_projector_distance - current_projector_distance)
+        if current_projector_distance <= 0.25:
+            projector_distance_rate = 1
+        else:
+            projector_distance_rate = 0.25 / current_projector_distance
 
         cmd_reward = 100.* distance_rate
-        proj_reward = 100.* (distance_projector_rate / 1.1360454260284)
-        proj_reward = self.constrain(proj_reward, -100, 100)
+        proj_reward = 100. * projector_distance_rate
+        # proj_reward = 100.* (distance_projector_rate / 1.1360454260284)
+        # proj_reward = self.constrain(proj_reward, -100, 100)
 
         reward = (0.4 * cmd_reward + 0.6 * proj_reward) * 0.01
 
         self.past_distance = current_distance
         self.past_distance_rate = distance_rate
         self.past_projector_distance = current_projector_distance
-        # print ("cmd_reward: ", round(cmd_reward,2), "proj_reward: ", round(proj_reward,2), "total_reward", round(reward,2))
+        print ("cmd_reward: ", round(cmd_reward,2), "proj_reward: ", round(proj_reward,2), "total_reward", round(reward,2))
 
         if done:
             reward = -100.
@@ -246,11 +255,11 @@ class Env():
         vel_cmd.linear.x = linear_vel / 4
         self.pub_cmd_vel.publish(vel_cmd)
 
-        self.pan_ang = self.constrain(self.pan_ang + action[1], -PAN_LIMIT, PAN_LIMIT)
-        self.tilt_ang = self.constrain(self.tilt_ang + action[2], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
+        # self.pan_ang = self.constrain(self.pan_ang + action[1], -PAN_LIMIT, PAN_LIMIT)
+        # self.tilt_ang = self.constrain(self.tilt_ang + action[2], TILT_MIN_LIMIT, TILT_MAX_LIMIT)
 
-        self.pan_pub.publish(self.pan_ang)
-        self.tilt_pub.publish(self.tilt_ang)
+        self.pan_pub.publish(action[1])
+        self.tilt_pub.publish(action[2])
 
         time.sleep(0.5)
 

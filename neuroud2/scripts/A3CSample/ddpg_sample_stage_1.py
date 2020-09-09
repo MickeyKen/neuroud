@@ -59,8 +59,8 @@ def main():
             while True:
                 a = agent.action(state)
                 a[0] = np.clip(np.random.normal(a[0], var), -1., 1.)
-                a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
-                a[2] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
+                a[1] = np.clip(np.random.normal(a[1], var), -PAN_LIMIT, PAN_LIMIT)
+                a[2] = np.clip(np.random.normal(a[2], var), TILT_MIN_LIMIT, TILT_MAX_LIMIT)
 
                 state_, r, done, arrive, reach = env.step(a, past_action)
                 time_step = agent.perceive(state, a, r, state_, done)
@@ -81,7 +81,7 @@ def main():
                     print ('Finished episode: ',episode,'Compulated Reward: ',cumulated_reward, 'Serviced count: ', reach_count)
                     print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', "Fail")
                     filehandle = open(path, 'a+')
-                    filehandle.write(str(episode) + ',' + str(one_round_step) + ',' + str(cumulated_reward)+"\n")
+                    filehandle.write(str(episode) + ',' + str(one_round_step) + ',' + str(cumulated_reward)+ ',' + str(reach_count) + "\n")
                     filehandle.close()
                     break
 
