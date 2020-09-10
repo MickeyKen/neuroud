@@ -6,23 +6,30 @@ import numpy as np
 import tensorflow as tf
 from ddpg2 import *
 from environment2 import Env
+import math
 
 exploration_decay_start_step = 50000
-state_dim = 1080 + 4
+state_dim = 1083 + 4
 action_dim = 2
-action_linear_max = 0.25  # m/s
-action_angular_max = 0.5  # rad/s
 is_training = True
 
+action_pan_max = 0.15
+action_tilt_max = 0.15
+
+PAN_LIMIT = math.radians(90)  #2.9670
+TILT_MIN_LIMIT = math.radians(90) - math.atan(3.0/0.998)
+TILT_MAX_LIMIT = math.radians(90) - math.atan(1.5/0.998)
+
+path = 'output.txt'
 
 def main():
     rospy.init_node('ddpg_stage_1')
     env = Env(is_training)
     agent = DDPG(env, state_dim, action_dim)
-    past_action = np.array([0., 0.])
+    past_action = np.array([0., TILT_MIN_LIMIT])
     print('State Dimensions: ' + str(state_dim))
     print('Action Dimensions: ' + str(action_dim))
-    print('Action Max: ' + str(action_linear_max) + ' m/s and ' + str(action_angular_max) + ' rad/s')
+    print('Action Max: (Pan)' + str(action_pan_max) + ' rad/s and (Tilt)' + str(action_tilt_max) + ' rad/s')
 
     if is_training:
         print('Training mode')
@@ -33,15 +40,23 @@ def main():
         while True:
             state = env.reset()
             one_round_step = 0
+            past_action = np.array([0., TILT_MIN_LIMIT])
+            episode = 0
+            cumulated_reward = 0.
+            reach_count = 0
 
             while True:
                 a = agent.action(state)
-                a[0] = np.clip(np.random.normal(a[2], var), -0.15, 0.15)
-                a[1] = np.clip(np.random.normal(a[3], var), -0.15, 0.15)
+                a[0] = np.clip(np.random.normal(a[0], var), -0.15, 0.15)
+                a[1] = np.clip(np.random.normal(a[1], var), -0.15, 0.15)
 
-                state_, r, done  = env.step(a, past_action)
-                time_step = agent.perceive(state, a, r, state_, done)
-                
+                state_, r, reach  = env.step(a, past_action)
+                time_step = agent.perceive(state, a, r, state_, reach)
+
+                cumulated_reward += r
+                if reach:
+                    reach_count += 1
+
                 if time_step > 0:
                     total_reward += r
 
@@ -60,8 +75,13 @@ def main():
                 state = state_
                 one_round_step += 1
 
-                if done or one_round_step >= 500:
+                if one_round_step >= 500:
+                    print ('Finished episode: ',episode,'Compulated Reward: ',cumulated_reward, 'Serviced count: ', reach_count)
                     print('Step: %3i' % one_round_step, '| Var: %.2f' % var, '| Time step: %i' % time_step, '|', "Fail")
+                    filehandle = open(path, 'a+')
+                    filehandle.write(str(episode) + ',' + str(one_round_step) + ',' + str(cumulated_reward)+ ',' + str(reach_count) + "\n")
+                    filehandle.close()
+                    episode += 1
                     break
 
     else:
