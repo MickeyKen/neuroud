@@ -37,11 +37,11 @@ def main():
         total_reward = 0
         var = 1.
 
+        episode = 0
         while True:
             state = env.reset()
             one_round_step = 0
             past_action = np.array([0., TILT_MIN_LIMIT])
-            episode = 0
             cumulated_reward = 0.
             reach_count = 0
 

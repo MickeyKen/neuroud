@@ -8,7 +8,7 @@ import random
 import quaternion
 import time
 
-from std_msgs.msg import Float64, Int32
+from std_msgs.msg import Float64, Int32, Float64MultiArray
 from geometry_msgs.msg import Twist, Point, Pose, Vector3, Quaternion
 from sensor_msgs.msg import LaserScan, JointState
 # from nav_msgs.msg import Odometry
@@ -45,11 +45,10 @@ class Env():
         self.sub_jsp = rospy.Subscriber('/ubiquitous_display/joint_states', JointState, self.getJsp)
 
         self.yaw = 0
-        self.rel_theta = 0
-        self.diff_angle = 0
         self.pan_ang = 0.
         self.tilt_ang = 0.
-        self.v = 0.
+
+        self.view_pub = rospy.Publisher('/view', Float64MultiArray, queue_size=10)
 
         if is_training:
             self.threshold_reach = 0.25
@@ -69,6 +68,11 @@ class Env():
     def getJsp(self, jsp):
         self.pan_ang = jsp.position[jsp.name.index("pan_joint")]
         self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")]
+
+    def pubView(self):
+        view_msg = Float64MultiArray()
+        view_msg.data = [self.position.position.x,self.position.position.y,self.projector_position.position.x,self.projector_position.position.y, self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y]
+        self.view_pub.publish(view_msg)
 
     def cal_actor_pose(self, distance):
         xp = 0.
@@ -104,6 +108,7 @@ class Env():
                 diff = math.hypot(self.goal_position.position.x - ud_x, self.goal_position.position.y - ud_y)
                 if diff > 0.4 + 0.271 + 0.3:
                     ud_ang = random.randint(0, 360)
+                    self.yaw = math.radians(ud_ang)
                     q = quaternion.from_euler_angles(0,0,math.radians(ud_ang))
                     break
 
@@ -118,9 +123,6 @@ class Env():
 
     def getState(self, scan):
         scan_range = []
-        yaw = self.yaw
-        rel_theta = self.rel_theta
-        diff_angle = self.diff_angle
         min_range = 0.4 + 0.271
 
         for i in range(len(scan.ranges)):
@@ -136,11 +138,14 @@ class Env():
     def getProjState(self):
         reach = False
 
-        radian = math.radians(self.yaw) + self.pan_ang
+        radian = self.yaw + self.pan_ang + math.radians(90)
         distance = 0.998 * math.tan(math.radians(90) - self.tilt_ang)
         self.projector_position.position.x = distance * math.cos(radian) + self.position.position.x
         self.projector_position.position.y = distance * math.sin(radian) + self.position.position.y
         diff = math.hypot(self.goal_projector_position.position.x - self.projector_position.position.x, self.goal_projector_position.position.y - self.projector_position.position.y)
+
+        # diff_ang = self.pan_ang + self.yaw
+        # diff_dis = self.tilt
 
         if diff <= self.threshold_reach:
             reach = True
@@ -198,6 +203,8 @@ class Env():
         self.tilt_pub.publish(tilt_ang)
 
         time.sleep(0.5)
+
+        self.pubView()
 
         data = None
         while data is None:
