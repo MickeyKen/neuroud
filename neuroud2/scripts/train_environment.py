@@ -15,7 +15,7 @@ from sensor_msgs.msg import LaserScan, JointState
 from std_srvs.srv import Empty
 from gazebo_msgs.srv import SpawnModel, DeleteModel
 from gazebo_msgs.msg import ModelStates
-
+from gazebo_msgs.srv import SetModelState, SetModelStateRequest
 
 diagonal_dis = math.sqrt(2) * (3.6 + 3.8)
 goal_model_dir = os.path.join(os.path.split(os.path.realpath(__file__))[0], '..', '..','neuroud2'
@@ -60,6 +60,9 @@ class Env():
         self.pan_ang = 0.
         self.tilt_ang = 0.
         self.v = 0.
+
+        self.ud_spawn = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+
         if is_training:
             self.threshold_arrive = 0.25
             self.min_threshold_arrive = 1.5
@@ -85,12 +88,26 @@ class Env():
 
         return goal_distance
 
+    def setUDposition(self):
+        rospy.wait_for_service('/gazebo/set_model_state')
+        try:
+            srv = SetModelStateRequest()
+            srv.model_state.model_name = 'ubiquitous_display'
+            srv.model_state.reference_frame = 'world'  # the same with sdf name
+            srv.model_state.pose.position.x = self.position.position.x
+            srv.model_state.pose.position.y = 0.
+            srv.model_state.pose.orientation.w = 1
+            self.ud_spawn(srv)
+        except (rospy.ServiceException) as e:
+            print("/gazebo/failed to build the target")
+
     def getJsp(self, jsp):
         self.pan_ang = jsp.position[jsp.name.index("pan_joint")]
         self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")]
 
     def getPose(self, pose):
         self.position = pose.pose[pose.name.index("ubiquitous_display")]
+        self.v = pose.twist[pose.name.index("ubiquitous_display")].linear.x
         orientation = self.position.orientation
         q_x, q_y, q_z, q_w = orientation.x, orientation.y, orientation.z, orientation.w
         yaw = round(math.degrees(math.atan2(2 * (q_x * q_y + q_w * q_z), 1 - 2 * (q_y * q_y + q_z * q_z))))
@@ -189,35 +206,20 @@ class Env():
         else:
             r_c = 1 - (current_distance / 2.25)
 
-        # print ("distance: ", current_distance, distance_rate)
-        # print (current_distance, r_c)
-
         current_projector_distance, reach = self.getProjState()
-        # distance_projector_rate = (self.past_projector_distance - current_projector_distance)
+
         if current_projector_distance >= 0.25:
             r_p = ((0.25 - current_projector_distance) ** 2) / 2
         else:
             r_p = 0
-        # print (current_projector_distance, r_p)
 
-        # cmd_reward = 100.* distance_rate
-        # proj_reward = 100. * projector_distance_rate
-        # proj_reward = 100.* (distance_projector_rate / 1.1360454260284)
-        # proj_reward = self.constrain(proj_reward, -100, 100)
-
-        # reward = (0.4 * cmd_reward + 0.6 * proj_reward) * 0.01
-        reward = self.constrain(1 - r_c - r_p - self.v, -1, 1)
-        #
-        # self.past_distance = current_distance
-        # self.past_distance_rate = distance_rate
-        # self.past_projector_distance = current_projector_distance
-        # print ("cmd_reward: ", round(r_c,2), "proj_reward: ", round(r_p,2), "total_reward", round(reward,2))
+        reward = self.constrain(1 - (r_c + r_p + abs(self.v)), -1, 1)
 
         if done:
             reward = -100.
             self.pub_cmd_vel.publish(Twist())
 
-        if arrive == True and reach == True:
+        if arrive and reach and round(self.v, 1) == 0.:
             reward = 200.
 
             rospy.wait_for_service('/gazebo/delete_model')
@@ -238,11 +240,9 @@ class Env():
                 print("/gazebo/failed to build the target")
 
             self.goal_distance = self.getGoalDistace()
-            # arrive = False
-            # reach = False
-        # print ("reward: ", reward)
+            self.setUDposition()
 
-        return reward, reach
+        return reward, arrive, reach
 
 
     def step(self, action, past_action):
@@ -301,9 +301,9 @@ class Env():
         state.append(self.tilt_ang)
 
         # state = state + [yaw / 360, rel_theta / 360, diff_angle / 180]
-        reward, reach = self.setReward(done, arrive)
+        reward, arrive, reach = self.setReward(done, arrive)
 
-        return np.asarray(state), reward, done
+        return np.asarray(state), reward, done, reach, arrive
 
     def cal_actor_pose(self, distance):
         xp = 0.

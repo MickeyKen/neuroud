@@ -94,6 +94,7 @@ if __name__ == '__main__':
         done = False
         episode_step = 0
         last_action = 0
+        service_count = 0
 
         # run until env returns done
         while not done:
@@ -104,7 +105,7 @@ if __name__ == '__main__':
             action = deepQ.selectAction(qValues, explorationRate)
 
             # newObservation, reward, done, info = step(action, last_action)
-            newObservation, reward, done  = env.step(action, last_action)
+            newObservation, reward, done, arrive, reach  = env.step(action, last_action)
             last_action = action
 
             cumulated_reward += reward
@@ -123,7 +124,13 @@ if __name__ == '__main__':
 
             observation = newObservation
 
-            if done:
+            episode_step += 1
+
+            if reach and arrive:
+                service_count += 1
+
+            if done or episode_step >= 500:
+                done = True
                 last100Scores[last100ScoresIndex] = episode_step
                 last100ScoresIndex += 1
                 if last100ScoresIndex >= 100:
@@ -135,9 +142,6 @@ if __name__ == '__main__':
                     m, s = divmod(int(time.time() - start_time), 60)
                     h, m = divmod(m, 60)
                     print ("EP " + str(epoch) + " - " + format(episode_step + 1) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated R: " + str(cumulated_reward) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
-                    filehandle = open(out_path, 'a+')
-                    filehandle.write(str(epoch) + ',' + str(episode_step + 1) + ',' + str(cumulated_reward)+ ',' + str(steps) + "\n")
-                    filehandle.close()
                     if (epoch)%100==0:
                         deepQ.saveModel(path+str(epoch)+'.h5')
 
@@ -146,11 +150,11 @@ if __name__ == '__main__':
                 deepQ.updateTargetNetwork()
                 print ("updating target network")
 
-            episode_step += 1
-
-            if episode_step >= 500:
-                break
         plot(xx,y,xx,y2,cumulated_reward)
+
+        filehandle = open(out_path, 'a+')
+        filehandle.write(str(epoch) + ',' + str(episode_step) + ',' + str(cumulated_reward)+ ',' + str(steps) +  ',' + str(service_count) + "\n")
+        filehandle.close()
 
 
         explorationRate *= 0.995 #epsilon decay
