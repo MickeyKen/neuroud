@@ -128,10 +128,10 @@ class DeepQ:
         rand = random.random()
         if rand < explorationRate :
             action = np.random.randint(0, self.output_size)
-            print (action, " :random")
+            # print (action, " :random")
         else :
             action = self.getMaxIndex(qValues)
-            print action
+            # print action
 
         return action
 
@@ -170,7 +170,7 @@ class DeepQ:
                 if isFinal:
                     X_batch = np.append(X_batch, np.array([newState.copy()]), axis=0)
                     Y_batch = np.append(Y_batch, np.array([[reward]*self.output_size]), axis=0)
-            self.model.fit(X_batch, Y_batch, batch_size = len(miniBatch), epochs=1, verbose = 1)
+            self.model.fit(X_batch, Y_batch, batch_size = len(miniBatch), epochs=1, verbose = 0)
 
     def saveModel(self, path):
         self.model.save(path)

@@ -190,7 +190,7 @@ class Env():
             r_c = 1 - (current_distance / 2.25)
 
         # print ("distance: ", current_distance, distance_rate)
-        print (current_distance, r_c)
+        # print (current_distance, r_c)
 
         current_projector_distance, reach = self.getProjState()
         # distance_projector_rate = (self.past_projector_distance - current_projector_distance)
@@ -198,7 +198,7 @@ class Env():
             r_p = ((0.25 - current_projector_distance) ** 2) / 2
         else:
             r_p = 0
-        print (current_projector_distance, r_p)
+        # print (current_projector_distance, r_p)
 
         # cmd_reward = 100.* distance_rate
         # proj_reward = 100. * projector_distance_rate
@@ -206,12 +206,12 @@ class Env():
         # proj_reward = self.constrain(proj_reward, -100, 100)
 
         # reward = (0.4 * cmd_reward + 0.6 * proj_reward) * 0.01
-        reward = 1 - r_c - r_p - self.v
+        reward = self.constrain(1 - r_c - r_p - self.v, -1, 1)
         #
         # self.past_distance = current_distance
         # self.past_distance_rate = distance_rate
         # self.past_projector_distance = current_projector_distance
-        print ("cmd_reward: ", round(r_c,2), "proj_reward: ", round(r_p,2), "total_reward", round(reward,2))
+        # print ("cmd_reward: ", round(r_c,2), "proj_reward: ", round(r_p,2), "total_reward", round(reward,2))
 
         if done:
             reward = -100.

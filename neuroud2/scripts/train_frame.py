@@ -16,8 +16,17 @@ import rospy
 
 from train_environment import Env
 
+import matplotlib.pyplot as plt
+
 out_path = 'output.txt'
 is_training = True
+
+def plot(x1,y1,x2,y2,cumulated_reward):
+    xx.append(epoch+1)
+    y.append(cumulated_reward)
+    plt.plot(xx,y, color="blue")
+    plt.draw()
+    plt.pause(0.1)
 
 if __name__ == '__main__':
     rospy.init_node('train_frame')
@@ -67,6 +76,16 @@ if __name__ == '__main__':
 
     start_time = time.time()
 
+    plt.ion()
+    plt.title('Simple Curve Graph')
+    plt.xlabel('Episode')
+    plt.ylabel('Reward')
+    plt.xlim(0,2000)
+    plt.ylim(-1000,2000)
+    plt.grid()
+    xx = []
+    y = []
+    y2 = []
 
     #start iterating from 'current epoch'.
     for epoch in xrange(current_epoch+1, epochs+1, 1):
@@ -80,7 +99,7 @@ if __name__ == '__main__':
         while not done:
             # env.render()
             qValues = deepQ.getQValues(observation)
-            print ("ss" ,qValues)
+            # print ("ss" ,qValues)
 
             action = deepQ.selectAction(qValues, explorationRate)
 
@@ -116,7 +135,7 @@ if __name__ == '__main__':
                     m, s = divmod(int(time.time() - start_time), 60)
                     h, m = divmod(m, 60)
                     print ("EP " + str(epoch) + " - " + format(episode_step + 1) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated R: " + str(cumulated_reward) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
-                    filehandle = open(path, 'a+')
+                    filehandle = open(out_path, 'a+')
                     filehandle.write(str(epoch) + ',' + str(episode_step + 1) + ',' + str(cumulated_reward)+ ',' + str(steps) + "\n")
                     filehandle.close()
                     if (epoch)%100==0:
@@ -129,7 +148,13 @@ if __name__ == '__main__':
 
             episode_step += 1
 
+            if episode_step >= 500:
+                break
+        plot(xx,y,xx,y2,cumulated_reward)
+
 
         explorationRate *= 0.995 #epsilon decay
         # explorationRate -= (2.0/epochs)
         explorationRate = max (0.05, explorationRate)
+
+    plt.savefig('output.png')
