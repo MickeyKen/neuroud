@@ -45,7 +45,7 @@ if __name__ == '__main__':
         #Each time we run through the entire dataset, it's called an epoch.
         #PARAMETER LIST
         epochs = 1000
-        steps = 1000
+        steps = 300
         updateTargetNetwork = 10000
         explorationRate = 0.6
         minibatch_size = 64
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         learningRate = 0.00025
         discountFactor = 0.99
         memorySize = 1000000
-        network_inputs = 541 + 1 + 2
+        network_inputs = 541 + 1 + 2 + 1
         network_outputs = 7
 
         ### number of hiddenLayer ###
@@ -126,10 +126,10 @@ if __name__ == '__main__':
 
             episode_step += 1
 
-            if reach and arrive:
+            if reward == 200:
                 service_count += 1
 
-            if done or episode_step >= 500:
+            if done or episode_step >= 300:
                 done = True
                 last100Scores[last100ScoresIndex] = episode_step
                 last100ScoresIndex += 1
@@ -137,13 +137,14 @@ if __name__ == '__main__':
                     last100Filled = True
                     last100ScoresIndex = 0
                 if not last100Filled:
-                    print ("EP " + str(epoch) + " - " + format(episode_step + 1) + "/" + str(steps) + " Episode steps   Exploration=" + str(round(explorationRate, 2)))
+                    print ("EP " + str(epoch) + " - " + format(episode_step) + "/" + str(steps) + " Episode steps   Exploration=" + str(round(explorationRate, 2)))
                 else :
                     m, s = divmod(int(time.time() - start_time), 60)
                     h, m = divmod(m, 60)
-                    print ("EP " + str(epoch) + " - " + format(episode_step + 1) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated R: " + str(cumulated_reward) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
-                    if (epoch)%100==0:
-                        deepQ.saveModel(path+str(epoch)+'.h5')
+                    print ("EP " + str(epoch) + " - " + format(episode_step) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated R: " + str(cumulated_reward) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
+                    if (epoch)%50==0:
+                        print ("save model")
+                        deepQ.saveModel(str(epoch)+'.h5')
 
             stepCounter += 1
             if stepCounter % updateTargetNetwork == 0:

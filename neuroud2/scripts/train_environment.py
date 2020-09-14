@@ -213,13 +213,14 @@ class Env():
         else:
             r_p = 0
 
-        reward = self.constrain(1 - (r_c + r_p + abs(self.v)), -1, 1)
+        # reward = self.constrain(1 - (r_c + r_p + abs(self.v)), -1, 1)
+        reward = 1 - (r_c + r_p + abs(self.v))
 
         if done:
-            reward = -100.
+            reward = -150.
             self.pub_cmd_vel.publish(Twist())
 
-        if arrive and reach and round(self.v, 1) == 0.:
+        if arrive and reach:
             reward = 200.
 
             rospy.wait_for_service('/gazebo/delete_model')
@@ -228,6 +229,7 @@ class Env():
             except rospy.ServiceException, e:
                 print ("Service call failed: %s" % e)
 
+            # Build the targetz
             rospy.wait_for_service('/gazebo/spawn_sdf_model')
             try:
                 goal_urdf = open(goal_model_dir, "r").read()
@@ -299,6 +301,7 @@ class Env():
         state.append(past_action)
         state.append(self.pan_ang)
         state.append(self.tilt_ang)
+        state.append(self.v)
 
         # state = state + [yaw / 360, rel_theta / 360, diff_angle / 180]
         reward, arrive, reach = self.setReward(done, arrive)
@@ -369,6 +372,8 @@ class Env():
             except:
                 pass
 
+
+
         self.pan_ang = 0.
         self.tilt_ang = TILT_MIN_LIMIT
         self.pan_pub.publish(self.pan_ang)
@@ -386,7 +391,30 @@ class Env():
         state.append(0)
         state.append(0)
         state.append(TILT_MIN_LIMIT)
+        state.append(self.v)
 
         # state = state + [yaw / 360, rel_theta / 360, diff_angle / 180]
 
         return np.asarray(state)
+
+    def find_human(self, data):
+        x_r = []
+        y_r = []
+        min_range = 0.2
+        print len(data.ranges)
+        step = math.pi / len(data.ranges)
+        human_count = 0
+        Human = False
+        for i, item in enumerate(data.ranges):
+            distance = data.ranges[i]
+            x = distance * math.cos(step * (i+1))
+            y = distance * math.sin(step * (i+1))
+            # print step * (i+1)
+            if x < 3.4 and x > -3.4 and y < 5.4 and y > 2.6:
+                human_count += 1
+            x_r.append(x)
+            y_r.append(y)
+        if human_count > 8:
+            Human = True
+
+        return Human
