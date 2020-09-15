@@ -19,7 +19,12 @@ from train_environment import Env
 import matplotlib.pyplot as plt
 
 out_path = 'output.txt'
+loss_out_path = 'output_loss.txt'
 is_training = True
+
+continue_execution = False
+weight_file = "1100.h5"
+params_json  = '1100.json'
 
 def plot(x1,y1,x2,y2,cumulated_reward):
     xx.append(epoch+1)
@@ -37,17 +42,16 @@ if __name__ == '__main__':
     path = '/tmp/'
     # plotter = liveplot.LivePlot(outdir)
 
-    continue_execution = False
     env = Env(is_training)
 
     if not continue_execution:
         #Each time we take a sample and update our weights it is called a mini-batch.
         #Each time we run through the entire dataset, it's called an epoch.
         #PARAMETER LIST
-        epochs = 1000
+        epochs = 10000
         steps = 300
         updateTargetNetwork = 10000
-        explorationRate = 0.6
+        explorationRate = 1
         minibatch_size = 64
         learnStart = 64
         learningRate = 0.00025
@@ -63,7 +67,28 @@ if __name__ == '__main__':
         deepQ = my_dqn.DeepQ(network_inputs, network_outputs, memorySize, discountFactor, learningRate, learnStart)
         deepQ.initNetworks(network_structure)
     else:
-        pass
+        #Load weights, monitor info and parameter info.
+        #ADD TRY CATCH fro this else
+        with open(params_json) as outfile:
+            d = json.load(outfile)
+            epochs = d.get('epochs')
+            steps = d.get('steps')
+            updateTargetNetwork = d.get('updateTargetNetwork')
+            explorationRate = d.get('explorationRate')
+            minibatch_size = d.get('minibatch_size')
+            learnStart = d.get('learnStart')
+            learningRate = d.get('learningRate')
+            discountFactor = d.get('discountFactor')
+            memorySize = d.get('memorySize')
+            network_inputs = d.get('network_inputs')
+            network_outputs = d.get('network_outputs')
+            network_structure = d.get('network_structure')
+            current_epoch = d.get('current_epoch')
+
+        deepQ = my_dqn.DeepQ(network_inputs, network_outputs, memorySize, discountFactor, learningRate, learnStart)
+        deepQ.initNetworks(network_structure)
+        print ("    ***** load file "+ weight_file+" *****")
+        deepQ.loadWeights(weight_file)
 
     # env._max_episode_steps = steps # env returns done after _max_episode_steps
     # env = gym.wrappers.Monitor(env, outdir,force=not continue_execution, resume=continue_execution)
@@ -116,11 +141,15 @@ if __name__ == '__main__':
 
             if stepCounter >= learnStart:
                 if stepCounter <= updateTargetNetwork:
-                    deepQ.learnOnMiniBatch(minibatch_size, False)
+                    history = deepQ.learnOnMiniBatch(minibatch_size, False)
                     # print "pass False"
                 else :
-                    deepQ.learnOnMiniBatch(minibatch_size, True)
+                    history = deepQ.learnOnMiniBatch(minibatch_size, True)
                     # print "pass True"
+                # print (str(history.history['loss']))
+                filehandle = open(loss_out_path, 'a+')
+                filehandle.write(str(epoch) + ',' + str(history.history['loss']) + "\n")
+                filehandle.close()
 
             observation = newObservation
 
@@ -145,6 +174,12 @@ if __name__ == '__main__':
                     if (epoch)%50==0:
                         print ("save model")
                         deepQ.saveModel(str(epoch)+'.h5')
+                        parameter_keys = ['epochs','steps','updateTargetNetwork','explorationRate','minibatch_size','learnStart','learningRate','discountFactor','memorySize','network_inputs','network_outputs','network_structure','current_epoch']
+                        parameter_values = [epochs, steps, updateTargetNetwork, explorationRate, minibatch_size, learnStart, learningRate, discountFactor, memorySize, network_inputs, network_outputs, network_structure, epoch]
+                        parameter_dictionary = dict(zip(parameter_keys, parameter_values))
+                        with open(str(epoch)+'.json', 'w') as outfile:
+                            json.dump(parameter_dictionary, outfile)
+
 
             stepCounter += 1
             if stepCounter % updateTargetNetwork == 0:
