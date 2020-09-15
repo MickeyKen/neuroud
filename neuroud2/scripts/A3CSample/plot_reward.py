@@ -19,12 +19,14 @@ if __name__ == '__main__':
 
     count = 0
 
+    fig = plt.figure()
+
     if isServiceCount:
         plt.ion()
-        plt.title('Simple Curve Graph')
+        # plt.title('Simple Curve Graph')
         plt.xlabel('Episode')
-        plt.ylabel('Reward')
-        plt.xlim(0,500)
+        plt.ylabel('Serviced human count')
+        plt.xlim(0,2000)
         plt.ylim(-0,4)
         plt.grid()
         with open(path) as f:
@@ -40,7 +42,7 @@ if __name__ == '__main__':
                     sum += int(moji)
                 else:
                     sum = float(sum / float(ave_num))
-                    average_xp.append((flag+1)*ave_num + 1)
+                    average_xp.append((flag)*ave_num + 1)
                     average_yp.append(sum)
                     sum = 0
                     sum += int(moji.split('.')[0])
@@ -54,11 +56,11 @@ if __name__ == '__main__':
 
     else:
         plt.ion()
-        plt.title('Simple Curve Graph')
+        # plt.title('Simple Curve Graph')
         plt.xlabel('Episode')
         plt.ylabel('Reward')
-        plt.xlim(0,500)
-        plt.ylim(-3000,1000)
+        plt.xlim(0,1500)
+        plt.ylim(-2000,2000)
         plt.grid()
         with open(path) as f:
             for s_line in f:
@@ -83,4 +85,5 @@ if __name__ == '__main__':
             plt.plot(xp,yp, color="#a9ceec", alpha=0.5)
             plt.plot(average_xp,average_yp, color="#00529a")
             plt.draw()
+            fig.savefig("result.png")
             plt.pause(0)
