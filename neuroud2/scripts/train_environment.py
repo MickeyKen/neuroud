@@ -60,6 +60,7 @@ class Env():
         self.pan_ang = 0.
         self.tilt_ang = 0.
         self.v = 0.
+        self.ud_x = 0.
 
         self.ud_spawn = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
 
@@ -107,6 +108,7 @@ class Env():
 
     def getPose(self, pose):
         self.position = pose.pose[pose.name.index("ubiquitous_display")]
+        self.ud_x = pose.pose[pose.name.index("ubiquitous_display")].position.x
         self.v = pose.twist[pose.name.index("ubiquitous_display")].linear.x
         orientation = self.position.orientation
         q_x, q_y, q_z, q_w = orientation.x, orientation.y, orientation.z, orientation.w
@@ -223,25 +225,33 @@ class Env():
         if arrive and reach:
             reward = 200.
 
-            rospy.wait_for_service('/gazebo/delete_model')
-            try:
-                self.del_model('actor0')
-            except rospy.ServiceException, e:
-                print ("Service call failed: %s" % e)
+            human = False
+            while not human:
+                rospy.wait_for_service('/gazebo/delete_model')
+                try:
+                    self.del_model('actor0')
+                except rospy.ServiceException, e:
+                    print ("Service call failed: %s" % e)
 
-            # Build the targetz
-            rospy.wait_for_service('/gazebo/spawn_sdf_model')
-            try:
-                goal_urdf = open(goal_model_dir, "r").read()
-                target = SpawnModel
-                target.model_name = 'actor0'  # the same with sdf name
-                target.model_xml = goal_urdf
-                self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
-                self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
-            except (rospy.ServiceException) as e:
-                print("/gazebo/failed to build the target")
+                rospy.wait_for_service('/gazebo/spawn_sdf_model')
+                try:
+                    goal_urdf = open(goal_model_dir, "r").read()
+                    target = SpawnModel
+                    target.model_name = 'actor0'  # the same with sdf name
+                    target.model_xml = goal_urdf
+                    self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
+                    self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
+                except (rospy.ServiceException) as e:
+                    print("/gazebo/failed to build the target")
+                data = None
+                while data is None:
+                    try:
+                        data = rospy.wait_for_message('scan_filtered', LaserScan, timeout=5)
+                    except:
+                        pass
+                human = self.find_human(data)
 
-            self.goal_distance = self.getGoalDistace()
+            # self.goal_distance = self.getGoalDistace()
             self.setUDposition()
 
         return reward, arrive, reach
@@ -279,7 +289,7 @@ class Env():
         else:
             print ("Error action is from 0 to 6")
 
-        time.sleep(0.5)
+        time.sleep(0.3)
 
         data = None
         while data is None:
@@ -346,18 +356,32 @@ class Env():
         except (rospy.ServiceException) as e:
             print("gazebo/reset_world service call failed")
 
+        human = False
+        while not human:
+            rospy.wait_for_service('/gazebo/delete_model')
+            try:
+                self.del_model('actor0')
+            except rospy.ServiceException, e:
+                print ("Service call failed: %s" % e)
 
-        # Build the targetz
-        rospy.wait_for_service('/gazebo/spawn_sdf_model')
-        try:
-            goal_urdf = open(goal_model_dir, "r").read()
-            target = SpawnModel
-            target.model_name = 'actor0'  # the same with sdf name
-            target.model_xml = goal_urdf
-            self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
-            self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
-        except (rospy.ServiceException) as e:
-            print("/gazebo/failed to build the target")
+            rospy.wait_for_service('/gazebo/spawn_sdf_model')
+            try:
+                goal_urdf = open(goal_model_dir, "r").read()
+                target = SpawnModel
+                target.model_name = 'actor0'  # the same with sdf name
+                target.model_xml = goal_urdf
+                self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
+                self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
+            except (rospy.ServiceException) as e:
+                print("/gazebo/failed to build the target")
+
+            data = None
+            while data is None:
+                try:
+                    data = rospy.wait_for_message('scan_filtered', LaserScan, timeout=5)
+                except:
+                    pass
+            human = self.find_human(data)
 
         rospy.wait_for_service('/gazebo/unpause_physics')
         try:
@@ -373,20 +397,12 @@ class Env():
                 pass
 
 
-
-        self.pan_ang = 0.
-        self.tilt_ang = TILT_MIN_LIMIT
-        self.pan_pub.publish(self.pan_ang)
-        self.tilt_pub.publish(self.tilt_ang)
-
-        self.past_distance_rate, reach = self.getProjState()
-
-        self.goal_distance = self.getGoalDistace()
-        state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
-        state = [i / 30. for i in state]
-
+        # self.past_distance_rate, reach = self.getProjState()
         self.pan_pub.publish(0.)
         self.tilt_pub.publish(TILT_MIN_LIMIT)
+        # self.goal_distance = self.getGoalDistace()
+        state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
+        state = [i / 30. for i in state]
 
         state.append(0)
         state.append(0)
@@ -398,22 +414,15 @@ class Env():
         return np.asarray(state)
 
     def find_human(self, data):
-        x_r = []
-        y_r = []
-        min_range = 0.2
-        print len(data.ranges)
         step = math.pi / len(data.ranges)
         human_count = 0
         Human = False
         for i, item in enumerate(data.ranges):
             distance = data.ranges[i]
-            x = distance * math.cos(step * (i+1))
+            x = distance * math.cos(step * (i+1)) + self.ud_x
             y = distance * math.sin(step * (i+1))
-            # print step * (i+1)
             if x < 3.4 and x > -3.4 and y < 5.4 and y > 2.6:
                 human_count += 1
-            x_r.append(x)
-            y_r.append(y)
         if human_count > 8:
             Human = True
 
