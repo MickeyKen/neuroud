@@ -224,6 +224,7 @@ class Env():
 
         if arrive and reach:
             reward = 200.
+            self.setUDposition()
 
             human = False
             while not human:
@@ -243,6 +244,7 @@ class Env():
                     self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
                 except (rospy.ServiceException) as e:
                     print("/gazebo/failed to build the target")
+                rospy.sleep(0.1)
                 data = None
                 while data is None:
                     try:
@@ -252,18 +254,11 @@ class Env():
                 human = self.find_human(data)
 
             # self.goal_distance = self.getGoalDistace()
-            self.setUDposition()
 
         return reward, arrive, reach
 
 
     def step(self, action, past_action):
-
-        rospy.wait_for_service('/gazebo/unpause_physics')
-        try:
-            self.unpause_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/unpause_physics service call failed")
 
         vel_cmd = Twist()
         if action == 0:
@@ -298,12 +293,6 @@ class Env():
             except:
                 pass
 
-        rospy.wait_for_service('/gazebo/pause_physics')
-        try:
-            #resp_pause = pause.call()
-            self.pause_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/pause_physics service call failed")
 
         state, rel_dis, yaw, rel_theta, diff_angle, done, arrive = self.getState(data)
         state = [i / 30. for i in state]
@@ -337,11 +326,6 @@ class Env():
         return xp, yp, rxp, ryp, rq
 
     def reset(self):
-        rospy.wait_for_service('/gazebo/unpause_physics')
-        try:
-            self.unpause_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/unpause_physics service call failed")
 
         # Reset the env #
         rospy.wait_for_service('/gazebo/delete_model')
@@ -374,6 +358,7 @@ class Env():
                 self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
             except (rospy.ServiceException) as e:
                 print("/gazebo/failed to build the target")
+            rospy.sleep(0.1)
 
             data = None
             while data is None:
@@ -382,12 +367,6 @@ class Env():
                 except:
                     pass
             human = self.find_human(data)
-
-        rospy.wait_for_service('/gazebo/unpause_physics')
-        try:
-            self.unpause_proxy()
-        except (rospy.ServiceException) as e:
-            print ("/gazebo/unpause_physics service call failed")
 
         data = None
         while data is None:
@@ -416,14 +395,20 @@ class Env():
     def find_human(self, data):
         step = math.pi / len(data.ranges)
         human_count = 0
+        tf_count = 0
         Human = False
-        for i, item in enumerate(data.ranges):
-            distance = data.ranges[i]
-            x = distance * math.cos(step * (i+1)) + self.ud_x
-            y = distance * math.sin(step * (i+1))
-            if x < 3.4 and x > -3.4 and y < 5.4 and y > 2.6:
-                human_count += 1
-        if human_count > 8:
+        for count in range(3):
+            for i, item in enumerate(data.ranges):
+                distance = data.ranges[i]
+                x = distance * math.cos(step * (i+1)) + self.ud_x
+                y = distance * math.sin(step * (i+1))
+                if x < 3.4 and x > -3.4 and y < 5.4 and y > 2.6:
+                    human_count += 1
+            if human_count > 7:
+                tf_count += 1
+        if tf_count >= 2:
             Human = True
+        else:
+            print ("no human", tf_count, human_count)
 
         return Human
