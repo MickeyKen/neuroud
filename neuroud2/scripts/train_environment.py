@@ -25,6 +25,9 @@ PAN_LIMIT = math.radians(90)  #2.9670
 TILT_MIN_LIMIT = math.radians(90) - math.atan(3.0/0.998)
 TILT_MAX_LIMIT = math.radians(90) - math.atan(1.5/0.998)
 
+PAN_STEP = math.radians(15)
+TILT_STEP = math.radians(3)
+
 class Env():
     def __init__(self, is_training):
         self.position = Pose()
@@ -103,8 +106,8 @@ class Env():
             print("/gazebo/failed to build the target")
 
     def getJsp(self, jsp):
-        self.pan_ang = jsp.position[jsp.name.index("pan_joint")]
-        self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")]
+        self.pan_ang = jsp.position[jsp.name.index("pan_joint")] % math.radians(360)
+        self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")] % math.radians(360)
 
     def getPose(self, pose):
         self.position = pose.pose[pose.name.index("ubiquitous_display")]
@@ -270,16 +273,16 @@ class Env():
             vel_cmd.linear.x = -0.1
             self.pub_cmd_vel.publish(vel_cmd)
         elif action == 3:
-            pan_ang = self.constrain(self.pan_ang + 0.15, -PAN_LIMIT, PAN_LIMIT)
+            pan_ang = self.constrain(self.pan_ang + PAN_STEP, -PAN_LIMIT, PAN_LIMIT)
             self.pan_pub.publish(pan_ang)
         elif action == 4:
-            pan_ang = self.constrain(self.pan_ang - 0.15, -PAN_LIMIT, PAN_LIMIT)
+            pan_ang = self.constrain(self.pan_ang - PAN_STEP, -PAN_LIMIT, PAN_LIMIT)
             self.pan_pub.publish(pan_ang)
         elif action == 5:
-            tilt_ang = self.constrain(self.tilt_ang + 0.08, TILT_MIN_LIMIT, TILT_MAX_LIMIT)
+            tilt_ang = self.constrain(self.tilt_ang + TILT_STEP, TILT_MIN_LIMIT, TILT_MAX_LIMIT)
             self.tilt_pub.publish(tilt_ang)
         elif action == 6:
-            tilt_ang = self.constrain(self.tilt_ang - 0.08, TILT_MIN_LIMIT, TILT_MAX_LIMIT)
+            tilt_ang = self.constrain(self.tilt_ang - TILT_STEP, TILT_MIN_LIMIT, TILT_MAX_LIMIT)
             self.tilt_pub.publish(tilt_ang)
         else:
             print ("Error action is from 0 to 6")
