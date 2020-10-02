@@ -14,7 +14,8 @@ import my_dqn
 
 import rospy
 
-from train_environment import Env
+from train_environment_1 import Env1
+from train_environment_2 import Env2
 
 import matplotlib.pyplot as plt
 
@@ -42,7 +43,8 @@ if __name__ == '__main__':
     path = '/tmp/'
     # plotter = liveplot.LivePlot(outdir)
 
-    env = Env(is_training)
+    env1 = Env1(is_training)
+    env2 = Env2(is_training)
 
     if not continue_execution:
         #Each time we take a sample and update our weights it is called a mini-batch.
@@ -114,30 +116,43 @@ if __name__ == '__main__':
 
     #start iterating from 'current epoch'.
     for epoch in xrange(current_epoch+1, epochs+1, 1):
-        observation = env.reset()
-        cumulated_reward = 0
-        done = False
+        observation1 = env1.reset()
+        observation2 = env2.reset()
+        cumulated_reward1 = 0
+        cumulated_reward2 = 0
+        done1 = False
+        done2 = False
         episode_step = 0
-        last_action = 0
+        last_action1 = 0
+        last_action2 = 0
         service_count = 0
 
         # run until env returns done
-        while not done:
+        while not done1 and not done2:
             # env.render()
-            qValues = deepQ.getQValues(observation)
+            qValues1 = deepQ.getQValues(observation1)
+            qValues2 = deepQ.getQValues(observation2)
             # print ("ss" ,qValues)
 
-            action = deepQ.selectAction(qValues, explorationRate)
+            action1 = deepQ.selectAction(qValues1, explorationRate)
+            action2 = deepQ.selectAction(qValues2, explorationRate)
 
             # newObservation, reward, done, info = step(action, last_action)
-            newObservation, reward, done, arrive, reach  = env.step(action, last_action)
-            last_action = action
+            newObservation1, reward1, done1, arrive1, reach1  = env1.step(action1, last_action1)
+            newObservation2, reward2, done2, arrive2, reach2  = env2.step(action2, last_action2)
 
-            cumulated_reward += reward
-            if highest_reward < cumulated_reward:
-                highest_reward = cumulated_reward
+            last_action1 = action1
+            last_action2 = action2
 
-            deepQ.addMemory(observation, action, reward, newObservation, done)
+            cumulated_reward1 += reward1
+            if highest_reward < cumulated_reward1:
+                highest_reward = cumulated_reward1
+            cumulated_reward2 += reward2
+            if highest_reward < cumulated_reward2:
+                highest_reward = cumulated_reward2
+
+            deepQ.addMemory(observation1, action1, reward1, newObservation1, done1)
+            deepQ.addMemory(observation2, action2, reward2, newObservation2, done2)
 
             if stepCounter >= learnStart:
                 if stepCounter <= updateTargetNetwork:
@@ -147,19 +162,21 @@ if __name__ == '__main__':
                     history = deepQ.learnOnMiniBatch(minibatch_size, True)
                     # print "pass True"
                 # print (str(history.history['loss']))
-                filehandle = open(loss_out_path, 'a+')
-                filehandle.write(str(epoch) + ',' + str(history.history['loss']) + "\n")
-                filehandle.close()
+                # filehandle = open(loss_out_path, 'a+')
+                # filehandle.write(str(epoch) + ',' + str(history.history['loss']) + "\n")
+                # filehandle.close()
 
-            observation = newObservation
+            observation1 = newObservation1
+            observation2 = newObservation2
 
             episode_step += 1
 
-            if reward == 200:
+            if reward1 == 200 or reward2 == 200:
                 service_count += 1
 
-            if done or episode_step >= 300:
-                done = True
+            if (done1 and done2) or episode_step >= 300:
+                done1 = True
+                done2 = True
                 last100Scores[last100ScoresIndex] = episode_step
                 last100ScoresIndex += 1
                 if last100ScoresIndex >= 100:
@@ -170,7 +187,7 @@ if __name__ == '__main__':
                 else :
                     m, s = divmod(int(time.time() - start_time), 60)
                     h, m = divmod(m, 60)
-                    print ("EP " + str(epoch) + " - " + format(episode_step) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated R: " + str(cumulated_reward) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
+                    print ("EP " + str(epoch) + " - " + format(episode_step) + "/" + str(steps) + " Episode steps - last100 Steps : " + str((sum(last100Scores) / len(last100Scores))) + " - Cumulated1 R: " + str(cumulated_reward1) + " - Cumulated2 R: " + str(cumulated_reward2) + "   Eps=" + str(round(explorationRate, 2)) + "     Time: %d:%02d:%02d" % (h, m, s))
                     if (epoch)%50==0:
                         print ("save model")
                         deepQ.saveModel(str(epoch)+'.h5')
@@ -181,7 +198,7 @@ if __name__ == '__main__':
                             json.dump(parameter_dictionary, outfile)
 
 
-            stepCounter += 1
+            stepCounter += 2
             if stepCounter % updateTargetNetwork == 0:
                 deepQ.updateTargetNetwork()
                 print ("updating target network")
@@ -189,7 +206,7 @@ if __name__ == '__main__':
         # plot(xx,y,xx,y2,cumulated_reward)
 
         filehandle = open(out_path, 'a+')
-        filehandle.write(str(epoch) + ',' + str(episode_step) + ',' + str(cumulated_reward)+ ',' + str(steps) +  ',' + str(service_count) + "\n")
+        filehandle.write(str(epoch) + ',' + str(episode_step) + ',' + str(cumulated_reward1)+ ',' + str(cumulated_reward2)+ ',' + str(steps) +  ',' + str(service_count) + "\n")
         filehandle.close()
 
 
