@@ -84,35 +84,31 @@ class Env2():
 
         return goal_distance
 
-    def setUDposition(self):
+    def setUDposition(self, x, y):
         rospy.wait_for_service('/gazebo/set_model_state')
         try:
             srv = SetModelStateRequest()
             srv.model_state.model_name = 'ubiquitous_display2'
             srv.model_state.reference_frame = 'world'  # the same with sdf name
-            srv.model_state.pose.position.x = self.position.position.x
-            srv.model_state.pose.position.y = 0.
+            srv.model_state.pose.position.x = x
+            srv.model_state.pose.position.y = y
             srv.model_state.pose.orientation.w = 1
             self.ud_spawn(srv)
         except (rospy.ServiceException) as e:
             print("/gazebo/failed to build the target")
 
-    def resetUDposition(self):
-        rospy.wait_for_service('/gazebo/set_model_state')
-        try:
-            srv = SetModelStateRequest()
-            srv.model_state.model_name = 'ubiquitous_display2'
-            srv.model_state.reference_frame = 'world'  # the same with sdf name
-            srv.model_state.pose.position.x = 5.0
-            srv.model_state.pose.position.y = 0.
-            srv.model_state.pose.orientation.w = 1
-            self.ud_spawn(srv)
-        except (rospy.ServiceException) as e:
-            print("/gazebo/failed to build the target")
 
     def getJsp(self, jsp):
-        self.pan_ang = jsp.position[jsp.name.index("pan_joint")] % math.radians(360)
-        self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")] % math.radians(360)
+        if jsp.position[jsp.name.index("pan_joint")] >= 0.0:
+            self.pan_ang = jsp.position[jsp.name.index("pan_joint")] % math.radians(360)
+        else:
+            self.pan_ang = -(abs(jsp.position[jsp.name.index("pan_joint")]) % math.radians(360))
+
+        if jsp.position[jsp.name.index("tilt_joint")] >= 0.0:
+            self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")] % math.radians(360)
+        else:
+            self.tilt_ang = -(abs(jsp.position[jsp.name.index("tilt_joint")]) % math.radians(360))
+
 
     def getPose(self, pose):
         self.position = pose.pose[pose.name.index("ubiquitous_display2")]
@@ -212,19 +208,19 @@ class Env2():
         # distance_rate = (self.past_distance - current_distance)
 
         if current_distance >= 2.25:
-            r_c = ((2.25 - current_distance) ** 2) / 2
+            r_c = ((2.25 - current_distance) ** 2) / 4
         else:
             r_c = 1 - (current_distance / 2.25)
 
         current_projector_distance, reach = self.getProjState()
 
         if current_projector_distance >= 0.25:
-            r_p = ((0.25 - current_projector_distance) ** 2) / 2
+            r_p = ((0.25 - current_projector_distance) ** 2) / 4
         else:
             r_p = 0
 
-        # reward = self.constrain(1 - (r_c + r_p + abs(self.v)), -1, 1)
-        reward = 1 - (r_c + r_p + abs(self.v))
+        reward = self.constrain(1 - (r_c + r_p + abs(self.v)), -1, 1)
+        # reward = 1 - (r_c + r_p + abs(self.v))
 
         if done:
             reward = -150.
@@ -232,7 +228,7 @@ class Env2():
 
         if arrive and reach:
             reward = 200.
-            self.setUDposition()
+            self.setUDposition(self.position.position.x, 0.0)
 
             human = False
             while not human:
@@ -249,10 +245,11 @@ class Env2():
                     target.model_name = 'actor1'  # the same with sdf name
                     target.model_xml = goal_urdf
                     self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
-                    self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
+                    self.goal(target.model_name, target.model_xml, 'namespace2', self.goal_position, 'world')
                 except (rospy.ServiceException) as e:
                     print("/gazebo/failed to build the target")
                 rospy.sleep(0.1)
+
                 data = None
                 while data is None:
                     try:
@@ -289,6 +286,8 @@ class Env2():
         elif action == 6:
             tilt_ang = self.constrain(self.tilt_ang - TILT_STEP, TILT_MIN_LIMIT, TILT_MAX_LIMIT)
             self.tilt_pub.publish(tilt_ang)
+        elif action == 7:
+            pass
         else:
             print ("Error action is from 0 to 6")
 
@@ -342,7 +341,10 @@ class Env2():
         except rospy.ServiceException, e:
             print ("Service call failed: %s" % e)
 
-        self.resetUDposition()
+        self.pan_pub.publish(0.)
+        self.tilt_pub.publish(TILT_MIN_LIMIT)
+        self.pub_cmd_vel.publish(Twist())
+        self.setUDposition(5.0, 0.0)
 
         human = False
         while not human:
@@ -359,7 +361,7 @@ class Env2():
                 target.model_name = 'actor1'  # the same with sdf name
                 target.model_xml = goal_urdf
                 self.goal_position.position.x, self.goal_position.position.y, self.goal_projector_position.position.x, self.goal_projector_position.position.y, self.goal_position.orientation = self.cal_actor_pose(2.5)
-                self.goal(target.model_name, target.model_xml, 'namespace', self.goal_position, 'world')
+                self.goal(target.model_name, target.model_xml, 'namespace2', self.goal_position, 'world')
             except (rospy.ServiceException) as e:
                 print("/gazebo/failed to build the target")
             rospy.sleep(0.1)
