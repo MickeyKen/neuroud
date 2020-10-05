@@ -60,7 +60,7 @@ if __name__ == '__main__':
         discountFactor = 0.99
         memorySize = 1000000
         network_inputs = 541 + 1 + 2 + 1
-        network_outputs = 7
+        network_outputs = 8
 
         ### number of hiddenLayer ###
         network_structure = [300,21]
@@ -126,33 +126,55 @@ if __name__ == '__main__':
         last_action1 = 0
         last_action2 = 0
         service_count = 0
+        loss_sum = 0.0
 
         # run until env returns done
-        while not done1 and not done2:
+        while not done1 or not done2:
             # env.render()
-            qValues1 = deepQ.getQValues(observation1)
-            qValues2 = deepQ.getQValues(observation2)
-            # print ("ss" ,qValues)
 
-            action1 = deepQ.selectAction(qValues1, explorationRate)
-            action2 = deepQ.selectAction(qValues2, explorationRate)
+            if not done1:
+                qValues1 = deepQ.getQValues(observation1)
+                action1 = deepQ.selectAction(qValues1, explorationRate)
+                newObservation1, reward1, done1, arrive1, reach1  = env1.step(action1, last_action1)
+                last_action1 = action1
+                cumulated_reward1 += reward1
+                if highest_reward < cumulated_reward1:
+                    highest_reward = cumulated_reward1
+                deepQ.addMemory(observation1, action1, reward1, newObservation1, done1)
+                observation1 = newObservation1
 
-            # newObservation, reward, done, info = step(action, last_action)
-            newObservation1, reward1, done1, arrive1, reach1  = env1.step(action1, last_action1)
-            newObservation2, reward2, done2, arrive2, reach2  = env2.step(action2, last_action2)
+            if not done2:
+                qValues2 = deepQ.getQValues(observation2)
+                action2 = deepQ.selectAction(qValues2, explorationRate)
+                newObservation2, reward2, done2, arrive2, reach2  = env2.step(action2, last_action2)
+                last_action2 = action2
+                cumulated_reward2 += reward2
+                if highest_reward < cumulated_reward2:
+                    highest_reward = cumulated_reward2
+                deepQ.addMemory(observation2, action2, reward2, newObservation2, done2)
+                observation2 = newObservation2
 
-            last_action1 = action1
-            last_action2 = action2
-
-            cumulated_reward1 += reward1
-            if highest_reward < cumulated_reward1:
-                highest_reward = cumulated_reward1
-            cumulated_reward2 += reward2
-            if highest_reward < cumulated_reward2:
-                highest_reward = cumulated_reward2
-
-            deepQ.addMemory(observation1, action1, reward1, newObservation1, done1)
-            deepQ.addMemory(observation2, action2, reward2, newObservation2, done2)
+            # qValues1 = deepQ.getQValues(observation1)
+            # qValues2 = deepQ.getQValues(observation2)
+            #
+            # action1 = deepQ.selectAction(qValues1, explorationRate)
+            # action2 = deepQ.selectAction(qValues2, explorationRate)
+            #
+            # newObservation1, reward1, done1, arrive1, reach1  = env1.step(action1, last_action1)
+            # newObservation2, reward2, done2, arrive2, reach2  = env2.step(action2, last_action2)
+            #
+            # last_action1 = action1
+            # last_action2 = action2
+            #
+            # cumulated_reward1 += reward1
+            # if highest_reward < cumulated_reward1:
+            #     highest_reward = cumulated_reward1
+            # cumulated_reward2 += reward2
+            # if highest_reward < cumulated_reward2:
+            #     highest_reward = cumulated_reward2
+            #
+            # deepQ.addMemory(observation1, action1, reward1, newObservation1, done1)
+            # deepQ.addMemory(observation2, action2, reward2, newObservation2, done2)
 
             if stepCounter >= learnStart:
                 if stepCounter <= updateTargetNetwork:
@@ -161,13 +183,11 @@ if __name__ == '__main__':
                 else :
                     history = deepQ.learnOnMiniBatch(minibatch_size, True)
                     # print "pass True"
+                loss_sum += history.history['loss'][0]
                 # print (str(history.history['loss']))
-                # filehandle = open(loss_out_path, 'a+')
-                # filehandle.write(str(epoch) + ',' + str(history.history['loss']) + "\n")
-                # filehandle.close()
 
-            observation1 = newObservation1
-            observation2 = newObservation2
+            # observation1 = newObservation1
+            # observation2 = newObservation2
 
             episode_step += 1
 
@@ -207,6 +227,9 @@ if __name__ == '__main__':
 
         filehandle = open(out_path, 'a+')
         filehandle.write(str(epoch) + ',' + str(episode_step) + ',' + str(cumulated_reward1)+ ',' + str(cumulated_reward2)+ ',' + str(steps) +  ',' + str(service_count) + "\n")
+        filehandle.close()
+        filehandle = open(loss_out_path, 'a+')
+        filehandle.write(str(epoch) + ',' + str(loss_sum/float(episode_step)) + "\n")
         filehandle.close()
 
 
