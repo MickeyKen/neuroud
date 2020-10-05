@@ -106,8 +106,15 @@ class Env():
             print("/gazebo/failed to build the target")
 
     def getJsp(self, jsp):
-        self.pan_ang = jsp.position[jsp.name.index("pan_joint")] % math.radians(360)
-        self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")] % math.radians(360)
+        if jsp.position[jsp.name.index("pan_joint")] >= 0.0:
+            self.pan_ang = jsp.position[jsp.name.index("pan_joint")] % math.radians(360)
+        else:
+            self.pan_ang = -(abs(jsp.position[jsp.name.index("pan_joint")]) % math.radians(360))
+
+        if jsp.position[jsp.name.index("tilt_joint")] >= 0.0:
+            self.tilt_ang = jsp.position[jsp.name.index("tilt_joint")] % math.radians(360)
+        else:
+            self.tilt_ang = -(abs(jsp.position[jsp.name.index("tilt_joint")]) % math.radians(360))
 
     def getPose(self, pose):
         self.position = pose.pose[pose.name.index("ubiquitous_display")]
